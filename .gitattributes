@@ -1,0 +1,7 @@
+# Build output must be committed byte-for-byte. index.js stores byte offsets into
+# index.data; line-ending conversion (core.autocrlf) shifts them and garbles every
+# file the game loads.
+*.data binary
+*.wasm binary
+*.js -text
+*.html -text
