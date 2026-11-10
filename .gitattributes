@@ -1,7 +1,9 @@
-# Build output must be committed byte-for-byte. index.js stores byte offsets into
-# index.data; line-ending conversion (core.autocrlf) shifts them and garbles every
-# file the game loads.
+# Build output must be committed byte-for-byte: line-ending conversion (core.autocrlf)
+# would change the files the game downloads (sim.js, sim.wasm, worlds/*.demo.gz).
 *.data binary
 *.wasm binary
+*.gz binary
+*.jpg binary
 *.js -text
 *.html -text
+*.json -text

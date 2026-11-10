@@ -1,0 +1,100 @@
+{
+  "default": "classic",
+  "worlds": [
+    {
+      "id": "classic",
+      "name": "Sand Hill",
+      "description": "Rolling sand hills dotted with grass and flowers. The original demo.",
+      "file": "classic.demo.gz",
+      "thumb": "classic.jpg",
+      "camera": {
+        "eye": [
+          8,
+          10,
+          43.6
+        ],
+        "look": [
+          8,
+          10,
+          40
+        ]
+      }
+    },
+    {
+      "id": "cave",
+      "name": "Dark Cave",
+      "description": "A cavern lit by crystals, with a waterfall pouring into an underground pool.",
+      "file": "cave.demo.gz",
+      "thumb": "cave.jpg",
+      "camera": {
+        "eye": [
+          50,
+          15,
+          64
+        ],
+        "look": [
+          50,
+          8,
+          14
+        ]
+      }
+    },
+    {
+      "id": "beach",
+      "name": "Beach",
+      "description": "Dunes and palm trees sloping down to the ocean, with rocks in the surf.",
+      "file": "beach.demo.gz",
+      "thumb": "beach.jpg",
+      "camera": {
+        "eye": [
+          50,
+          30,
+          -18
+        ],
+        "look": [
+          50,
+          8,
+          60
+        ]
+      }
+    },
+    {
+      "id": "city",
+      "name": "Concrete Jungle",
+      "description": "City blocks of towers with lit windows, street trees and parked cars.",
+      "file": "city.demo.gz",
+      "thumb": "city.jpg",
+      "camera": {
+        "eye": [
+          -28,
+          82,
+          132
+        ],
+        "look": [
+          52,
+          6,
+          45
+        ]
+      }
+    },
+    {
+      "id": "park",
+      "name": "Park",
+      "description": "A small park with a rock-covered trail, a pond, trees and flower beds.",
+      "file": "park.demo.gz",
+      "thumb": "park.jpg",
+      "camera": {
+        "eye": [
+          8,
+          22,
+          96
+        ],
+        "look": [
+          55,
+          4,
+          45
+        ]
+      }
+    }
+  ]
+}

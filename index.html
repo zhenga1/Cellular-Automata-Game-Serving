@@ -76,6 +76,23 @@
   .goal span { width: 26px; height: 26px; border-radius: 5px; box-shadow: inset 0 -5px 0 rgba(0,0,0,.25); }
   .mode.soon .cta { color: var(--muted); font-weight: 500; }
 
+  /* World gallery, filled from worlds/worlds.json */
+  .worlds { margin-top: 48px; }
+  .worlds h2 { margin: 0 0 4px; font-size: 20px; }
+  .worlds > p { margin: 0 0 16px; color: var(--muted); }
+  .world-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 14px; }
+  .world {
+    display: block; overflow: hidden; color: inherit; text-decoration: none;
+    background: var(--card); border: 1px solid var(--border); border-radius: 12px;
+    transition: transform .15s ease, border-color .15s ease;
+  }
+  .world:hover { transform: translateY(-2px); border-color: rgba(124, 196, 255, 0.4); }
+  .world:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
+  .world img { display: block; width: 100%; height: auto; aspect-ratio: 16 / 9; object-fit: cover; background: #2a2d35; }
+  .world div { padding: 10px 12px 12px; }
+  .world strong { display: block; font-size: 15px; }
+  .world span { display: block; color: var(--muted); font-size: 13px; margin-top: 2px; }
+
   footer {
     max-width: 980px; width: 100%; margin: 0 auto; padding: 24px 16px 32px;
     color: var(--muted); font-size: 13px; border-top: 1px solid var(--border);
@@ -86,8 +103,8 @@
     .modes { grid-template-columns: 1fr; }
   }
   @media (prefers-reduced-motion: reduce) {
-    .mode { transition: none; }
-    a.mode:hover { transform: none; }
+    .mode, .world { transition: none; }
+    a.mode:hover, .world:hover { transform: none; }
   }
 </style>
 </head>
@@ -111,7 +128,7 @@
       <div class="thumb"><img src="preview.jpg" alt="Voxel world with sand, lava, fire and smoke" width="960" height="540"></div>
       <div class="body">
         <div class="title-row"><h2>Simulation</h2></div>
-        <p>Free-play sandbox. Pour 10 materials, place spawners that keep emitting them, and save or load your worlds.</p>
+        <p>Free-play sandbox in any of the worlds below. Pour 10 materials, place spawners that keep emitting them, and save or load your own worlds.</p>
         <span class="cta">Open simulation &rarr;</span>
       </div>
     </a>
@@ -131,7 +148,39 @@
       </div>
     </div>
   </section>
+
+  <section class="worlds" aria-labelledby="worlds-title" hidden>
+    <h2 id="worlds-title">Worlds</h2>
+    <p>Jump straight into a world in Simulation mode. You can switch worlds from the panel at any time.</p>
+    <div class="world-grid" id="world-grid"></div>
+  </section>
 </main>
+
+<script>
+  // The gallery comes from the same manifest the simulation uses, so a new world in
+  // worlds/worlds.json shows up here automatically. If it fails to load, the section stays hidden.
+  fetch("worlds/worlds.json")
+    .then((res) => res.ok ? res.json() : Promise.reject(res.status))
+    .then(({ worlds }) => {
+      const grid = document.getElementById("world-grid");
+      for (const w of worlds) {
+        const a = document.createElement("a");
+        a.className = "world";
+        a.href = "sim.html?world=" + encodeURIComponent(w.id);
+        const img = Object.assign(document.createElement("img"), {
+          src: "worlds/" + w.thumb, alt: "", width: 640, height: 360, loading: "lazy",
+        });
+        const text = document.createElement("div");
+        const name = Object.assign(document.createElement("strong"), { textContent: w.name });
+        const desc = Object.assign(document.createElement("span"), { textContent: w.description });
+        text.append(name, desc);
+        a.append(img, text);
+        grid.append(a);
+      }
+      grid.closest("section").hidden = false;
+    })
+    .catch((err) => console.warn("World gallery unavailable:", err));
+</script>
 
 <footer>
   Built from a C++ / OpenGL CS184 final project, compiled to WebAssembly with Emscripten. Needs a browser with WebGL 2.

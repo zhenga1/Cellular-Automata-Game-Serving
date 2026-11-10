@@ -23,7 +23,11 @@ The original C++/OpenGL project (CS184 final project) is compiled to WebAssembly
 | `L` | Toggle gravity |
 | `H` | Hide the control panel |
 
-The panel also has spawners (blocks that keep emitting a material), reset, and saving/loading world files.
+The panel also has a world picker, spawners (blocks that keep emitting a material), reset, and saving/loading world files (`.demo` or `.demo.gz`).
+
+## Worlds
+
+Open a specific world with `sim.html?world=<id>`: `classic` (Sand Hill), `cave` (Dark Cave), `beach` (Beach), `city` (Concrete Jungle) or `park` (Park). The home page lists them too.
 
 ## Files
 
@@ -34,7 +38,9 @@ The panel also has spawners (blocks that keep emitting a material), reset, and s
 | `sim.html` | The simulation page, built from `web/shell.html` in the source repo |
 | `sim.js` | Emscripten loader and runtime |
 | `sim.wasm` | The compiled simulation |
-| `sim.data` | The starting world (`begin.demo`) |
+| `worlds/worlds.json` | The world list: name, description, file, thumbnail and starting camera for each world |
+| `worlds/*.demo.gz` | The worlds, gzipped. Only the one being opened is downloaded |
+| `worlds/*.jpg` | Thumbnails for the home page |
 
 ## Rebuilding
 
@@ -44,4 +50,6 @@ In the source repo (`cs184-final-proj`, branch `aaron_web_edit`), in a terminal 
 ./build_web.ps1 -Deploy C:\path\to\this\repo
 ```
 
-Then commit and push this repo. The build tags every file URL with a hash of the build, so browsers never combine a new `index.js` with a cached old `index.data`.
+Then commit and push this repo. The build tags every file URL with a hash of the build, so browsers never combine files from two different builds.
+
+To add a world: put its `.demo.gz` and a thumbnail in the source repo's `worlds/` folder, add an entry to `worlds/worlds.json`, and rebuild. The generated worlds come from `worlds/generate_worlds.py`.
