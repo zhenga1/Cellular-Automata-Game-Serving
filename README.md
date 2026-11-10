@@ -16,7 +16,8 @@ The original C++/OpenGL project (CS184 final project) is compiled to WebAssembly
 | `Space` / `Shift` | Up / down |
 | Scroll | Move the red cursor box nearer / farther |
 | `F` | Place the selected material at the cursor box |
-| `1`–`0`, `X` | Pick a material / delete |
+| `1`–`0`, `T`, `X` | Pick a material / turf / delete |
+| `B` | Open / close the rulebook (how each material behaves) |
 | `[` `]` | Brush size |
 | `P` | Pause / resume |
 | `C` | Show / hide the cursor box |
