@@ -154,6 +154,12 @@
     <p>Jump straight into a world in Simulation mode. You can switch worlds from the panel at any time.</p>
     <div class="world-grid" id="world-grid"></div>
   </section>
+
+  <section class="worlds" aria-labelledby="user-worlds-title" hidden>
+    <h2 id="user-worlds-title">User-created worlds</h2>
+    <p>Worlds built and saved by players in the simulation. Some older saves were cut off, so parts of them may be missing.</p>
+    <div class="world-grid" id="user-world-grid"></div>
+  </section>
 </main>
 
 <script>
@@ -162,8 +168,9 @@
   fetch("worlds/worlds.json")
     .then((res) => res.ok ? res.json() : Promise.reject(res.status))
     .then(({ worlds }) => {
-      const grid = document.getElementById("world-grid");
       for (const w of worlds) {
+        // "category": "user" worlds (imported saves) get their own section
+        const grid = document.getElementById(w.category === "user" ? "user-world-grid" : "world-grid");
         const a = document.createElement("a");
         a.className = "world";
         a.href = "sim.html?world=" + encodeURIComponent(w.id);
@@ -176,8 +183,8 @@
         text.append(name, desc);
         a.append(img, text);
         grid.append(a);
+        grid.closest("section").hidden = false;
       }
-      grid.closest("section").hidden = false;
     })
     .catch((err) => console.warn("World gallery unavailable:", err));
 </script>
