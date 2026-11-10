@@ -2,7 +2,7 @@
 
 A 3D falling-sand sandbox that runs in the browser: pour sand, water, lava and fire and watch them interact.
 
-**Play it:** https://zhenga1.github.io/Cellular-Automata-Game-Serving/ (the simulation itself is at `sim.html`) (needs a browser with WebGL 2)
+**Play it:** https://zhenga1.github.io/Cellular-Automata-Game-Serving/ (needs a browser with WebGL 2). The simulation itself is at `sim.html`.
 
 The original C++/OpenGL project (CS184 final project) is compiled to WebAssembly with Emscripten. This repo only holds the built files that GitHub Pages serves.
 
