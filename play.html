@@ -179,7 +179,7 @@ details li{margin:4px 0}
     <div class="stat"><span id="hazard-label">Fire blocks</span><b id="fire">–</b></div>
     <div class="stat" id="alive-row"><span id="alive-label">Villagers alive</span><b id="alive">–</b></div>
     <div id="burn-box" hidden>
-      <div class="stat"><span>World burned</span><b id="burned">–</b></div>
+      <div class="stat"><span id="burn-label">World burned</span><b id="burned">–</b></div>
       <div id="burnbar" role="progressbar" aria-label="World burned" aria-valuemin="0" aria-valuemax="100"><div></div></div>
     </div>
     <div id="timer-box" hidden>
@@ -257,7 +257,7 @@ let ready = false, level = null, levelBytes = null, watch = null;
 let phase = "loading";        // loading | planning | running | won | lost
 let placementsLeft = 0, selected = null, matButtons = {}, toastTimer = null;
 let lastScan = 0, scanning = false;
-let library = null, hazardTypes = new Set(), targetTypes = new Set(), ticks = 0;
+let library = null, hazardTypes = new Set(), targetTypes = new Set(), fillBox = null, ticks = 0;
 
 const call = (fn, ret, types, args) => ready ? Module.ccall(fn, ret, types, args) : null;
 
@@ -349,7 +349,15 @@ function readWorld() {
       readInt();                        // colour, not needed
       const m = readInt();
       if (hazardTypes.has(m)) fire++;
-      if (targetTypes.has(m)) remaining++;
+      if (targetTypes.has(m)) {
+        if (!fillBox) remaining++;
+        else {
+          const [cx, cy, cz] = key.split(",").map(Number);
+          const x = cx * 32 + (i & 31), y = cy * 32 + ((i >> 5) & 31), z = cz * 32 + (i >> 10);
+          if (x >= fillBox[0] && x <= fillBox[1] && y >= fillBox[2] && y <= fillBox[3] &&
+              z >= fillBox[4] && z <= fillBox[5]) remaining++;
+        }
+      }
       if (watched !== undefined) {
         const v = watched.get(i);
         if (v !== undefined && m !== WOOD) burned[v]++;
@@ -415,6 +423,14 @@ function tickState() {
     $("fire").textContent = fire;
     $("fire").parentElement.classList.toggle("danger", fire > 0);
     const alive = showVillagers(burned);
+    if (level.win.type === "fill") {
+      showBurned(remaining / level.win.target);
+      if (remaining >= level.win.target) {
+        finish(true, "Water is running into the village pool: " + remaining + " cells and rising. " +
+                     "You used " + (level.placements - placementsLeft) + " of " + level.placements + " blocks.");
+      }
+      return;
+    }
     if (level.win.type === "destroy") {
       const done = 1 - remaining / level.win.total;
       showBurned(done);
@@ -575,7 +591,7 @@ function loadLevelWorld(message) {
   placementsLeft = level.placements;
   ticks = 0;
   updateTimer();
-  if (level.win.type === "destroy") showBurned(0);
+  if (level.win.type === "destroy" || level.win.type === "fill") showBurned(0);
   resetRecording();
   $("left").textContent = placementsLeft;
   $("fire").textContent = "–";
@@ -839,16 +855,21 @@ var Module = {
       $("kit-title").textContent = level.labels.kit;
       $("hazard-label").textContent = level.hazard.label;
       targetTypes = new Set(level.win.types || []);
-      const destroy = level.win.type === "destroy";
-      $("villagers-box").hidden = destroy;
-      $("alive-row").hidden = destroy;
-      $("burn-box").hidden = !destroy;
-      if (destroy) $("burnbar").style.setProperty("--goal", Math.round(level.win.target * 100) + "%");
-      const GAMES = {save: "Save the Villagers", destroy: "Destroy the World"};
-      const other = library.levels.find(l => l.game !== level.game);
-      $("other-game").innerHTML = other
-        ? 'Other game: <a href="play.html?level=' + encodeURIComponent(other.id) + '" style="color:var(--accent)">' +
-          GAMES[other.game] + " &rarr;</a>"
+      fillBox = level.win.type === "fill" ? level.win.region : null;
+      const meter = level.win.type === "destroy" || level.win.type === "fill";
+      $("villagers-box").hidden = level.villagers.length === 0;
+      $("alive-row").hidden = level.villagers.length === 0;
+      $("burn-box").hidden = !meter;
+      $("burn-label").textContent = level.win.label || "World burned";
+      if (level.win.type === "destroy") $("burnbar").style.setProperty("--goal", Math.round(level.win.target * 100) + "%");
+      if (level.win.type === "fill") $("burnbar").style.setProperty("--goal", "100%");
+      const GAMES = {save: "Save the Villagers", destroy: "Destroy the World", build: "Build a Path"};
+      const others = [...new Set(library.levels.map(l => l.game))].filter(g => g !== level.game);
+      $("other-game").innerHTML = others.length
+        ? "Other games: " + others.map(g => {
+            const first = library.levels.find(l => l.game === g);
+            return '<a href="play.html?level=' + encodeURIComponent(first.id) + '" style="color:var(--accent)">' + GAMES[g] + "</a>";
+          }).join(" · ")
         : "";
       const single = level.villagers.length === 1;
       $("villagers-title").textContent = single ? "Village" : "Villagers";

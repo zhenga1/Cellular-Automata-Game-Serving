@@ -6,7 +6,7 @@ Everything it writes lands in this folder, which play.html reads.
 import hashlib, json, math, os, random, struct, zlib
 
 from demo_format import (World, EMPTY, STONE, SAND, WATER, FIRE, SNOW, GRASS,
-                         WOOD, TURF, LAVA, LAVA_SPAWNER, FIRE_SPAWNER, pack, unpack)
+                         WOOD, TURF, LAVA, LAVA_SPAWNER, FIRE_SPAWNER, WATER_SPAWNER, pack, unpack)
 
 W = H = 96          # the world is 96x96 cells across, y 0..31
 TOP = 31
@@ -334,6 +334,75 @@ def build_ember_isle():
     return w, []
 
 
+# ------------------------------------------------------------ Aqueduct (draft)
+#
+# Build a Path, draft level. A spring on the north plateau feeds a walled
+# channel that stops at a bottomless chasm; on the far side another channel
+# runs down to the village's empty pool. Water that falls into the chasm is
+# gone for good (World::update wipes chunk layer y = -2), so the player has to
+# bridge the gap with stone before the pool will fill.
+AQ_W = 64
+AQ_X0, AQ_X1 = 30, 32          # both channels, 3 wide
+AQ_GAP = (28, 33)              # the chasm, z range (6 wide)
+AQ_N_TOP, AQ_S_TOP = 10, 9     # plateau heights: the far side is one lower
+AQ_POOL = (24, 38, 6, 16)      # x0, x1, z0, z1 of the village pool
+AQ_POOL_DEPTH = 3
+
+CLIFF   = (122, 112, 98)
+CLIFF_D = (98, 90, 80)
+MEADOW_STONE = (106, 140, 82)  # stone coloured as grass, so nothing here burns
+CHANNEL = (88, 84, 82)
+POOL_C  = (70, 74, 82)
+
+
+def build_aqueduct(bridge=False):
+    w = World()
+    for cx in range(2):
+        for cz in range(2):
+            w.set(cx * 32, 0, cz * 32, EMPTY)
+    g0, g1 = AQ_GAP
+    # Two plateaus with grassy tops, and nothing at all in the chasm between them
+    w.fill(0, AQ_W - 1, 0, AQ_N_TOP - 1, g1 + 1, AQ_W - 1, STONE, CLIFF)
+    w.fill(0, AQ_W - 1, AQ_N_TOP, AQ_N_TOP, g1 + 1, AQ_W - 1, STONE, MEADOW_STONE)
+    w.fill(0, AQ_W - 1, 0, AQ_S_TOP - 1, 0, g0 - 1, STONE, CLIFF_D)
+    w.fill(0, AQ_W - 1, AQ_S_TOP, AQ_S_TOP, 0, g0 - 1, STONE, MEADOW_STONE)
+
+    # North channel: from the spring down to the chasm edge, floor at the plateau top
+    for z in range(g1 + 1, 58):
+        for x in (AQ_X0 - 1, AQ_X1 + 1):
+            w.fill(x, x, AQ_N_TOP + 1, AQ_N_TOP + 3, z, z, STONE, CHANNEL)
+    w.fill(AQ_X0 - 1, AQ_X1 + 1, AQ_N_TOP + 1, AQ_N_TOP + 3, 58, 58, STONE, CHANNEL)
+    # The spring: three water spawners at the head of the channel
+    w.fill(AQ_X0, AQ_X1, AQ_N_TOP + 3, AQ_N_TOP + 3, 56, 56, WATER_SPAWNER, (165, 70, 228))
+
+    # The aqueduct's walls carry on across the chasm, hanging in mid-air (stone never
+    # falls); only its deck is missing, and that is what the player builds
+    for z in range(g0, g1 + 1):
+        for x in (AQ_X0 - 1, AQ_X1 + 1):
+            w.fill(x, x, AQ_S_TOP - 1, AQ_N_TOP + 3, z, z, STONE, CHANNEL)
+
+    # South channel: from the chasm edge to the pool
+    px0, px1, pz0, pz1 = AQ_POOL
+    for z in range(pz1 + 1, g0):
+        for x in (AQ_X0 - 1, AQ_X1 + 1):
+            w.fill(x, x, AQ_S_TOP + 1, AQ_S_TOP + 3, z, z, STONE, CHANNEL)
+    # The village pool: dug into the plateau, empty
+    w.fill(px0, px1, AQ_S_TOP - AQ_POOL_DEPTH + 1, AQ_S_TOP, pz0, pz1, EMPTY)
+    w.fill(px0, px1, AQ_S_TOP - AQ_POOL_DEPTH, AQ_S_TOP - AQ_POOL_DEPTH, pz0, pz1, STONE, POOL_C)
+
+    # The village around the pool
+    for hx, hz in ((16, 6), (42, 8), (18, 17), (42, 18)):
+        for dx in range(4):
+            for dz in range(4):
+                for dy in range(4):
+                    if dx in (0, 3) or dz in (0, 3) or dy == 3:
+                        w.set(hx + dx, AQ_S_TOP + 1 + dy, hz + dz, WOOD, ROOF if dy == 3 else WALL)
+
+    if bridge:      # for testing: what two well-placed 3x3x3 blocks would build
+        w.fill(AQ_X0, AQ_X1, AQ_S_TOP - 1, AQ_S_TOP + 1, g0, g1, STONE, (135, 140, 140))
+    return w, []
+
+
 LEVELS = [{
     'id': 'lava-fork',
     'game': 'save',
@@ -434,6 +503,41 @@ LEVELS = [{
     'camera': {'eye': [32, 92, -26], 'look': [32, 0, 30]},
     'size': EI_W,
     'build': build_ember_isle,
+}, {
+    'id': 'aqueduct',
+    'game': 'build',
+    'draft': True,
+    'name': 'Aqueduct',
+    'subtitle': 'Build a Path · Draft level',
+    'brief': 'The village has run dry. A spring on the far plateau still flows, and the old aqueduct '
+             'still spans the chasm, but its deck has fallen away.',
+    'goal': 'Lay the missing deck so the water reaches the village pool. Fill it with 300 blocks of water.',
+    'hints': [
+        'Water spreads sideways as well as down, so it needs walls on both sides. The aqueduct '
+        'still has its walls; only the floor is gone.',
+        'A 3x3x3 block fits exactly between the walls. The gap is 6 long.',
+        'The deck has to line up with the channel floors on both sides of the chasm.',
+    ],
+    'materials': ['stone'],
+    'spawners': False,
+    'placements': 3,
+    'max_brush': 3,
+    'brush': 3,
+    'hazard': {'label': 'Water blocks', 'types': [WATER]},
+    'win': {'type': 'fill', 'label': 'Pool filled', 'types': [WATER], 'target': 300,
+            'region': [AQ_POOL[0], AQ_POOL[1], AQ_S_TOP - AQ_POOL_DEPTH + 1, AQ_S_TOP,
+                       AQ_POOL[2], AQ_POOL[3]]},
+    'labels': {
+        'kit': 'Your stone',
+        'start': 'Turn on the spring',
+        'running': 'The spring is flowing. You can still place blocks.',
+        'planning': 'Paused. Lay the deck, then turn on the spring.',
+        'won': 'The village has water',
+        'lost': 'The pool stayed dry',
+    },
+    'camera': {'eye': [70, 44, -10], 'look': [31, 6, 32]},
+    'size': AQ_W,
+    'build': build_aqueduct,
 }]
 
 

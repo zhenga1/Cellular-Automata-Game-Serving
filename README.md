@@ -48,6 +48,13 @@ The second game is **Destroy the World**:
   burn at least 97% of the world. One fire in each chain wins (about 98% burns); two in the same
   chain leave the other chain standing (about 39% burns). Both were tested in the real sim.
 
+A third game, **Build a Path**, has one **draft** level:
+
+- **Aqueduct** (`aqueduct`): a spring on one plateau, the village's empty pool on the other, and an
+  old aqueduct across the chasm between them whose deck is missing. Lay the deck with stone (3
+  placements, 2 needed) so 300 blocks of water reach the pool. Without a deck all the water falls
+  into the chasm and is lost; with it the pool filled in about 15 seconds in testing.
+
 Each level starts paused so you can build first. Play mode reads the world back by calling the
 sim's save function and parsing the result a couple of times a second, since the WebAssembly
 build exposes no way to read cells directly.
