@@ -177,6 +177,10 @@ details li{margin:4px 0}
     <button class="primary" id="start">Start</button>
     <button id="restart" title="Put the level back to the beginning">Restart</button>
   </div>
+  <div class="section" id="complete-box" hidden>
+    <button class="primary" id="complete" style="width:100%">Complete level</button>
+    <div class="hint">The fire is out, or nearly out. Finish the level and count who survived.</div>
+  </div>
 </aside>
 
 <div id="result" role="dialog" aria-modal="true" aria-labelledby="result-title">
@@ -384,16 +388,28 @@ function tickState() {
         finish(true, "The lava ran into the pit and the village never caught. You held out for all " +
                      level.win.ticks + " ticks.");
       }
-    } else if (fire === 0) {
-      finish(true, "The fire burned itself out and all " + level.villagers.length +
-                   " villagers are still standing. You used " +
-                   (level.placements - placementsLeft) + " of " + level.placements + " placements.");
+    } else if (level.win.type === "fire_out" && fire <= COMPLETE_AT) {
+      // A few stray fire cells can flicker for a while after the fire front has
+      // burned out, so let the player call it once there are almost none left.
+      $("complete-box").hidden = false;
+      if (fire === 0) completeLevel();
     }
   } catch (err) {
     console.error(err);
   } finally {
     scanning = false;
   }
+}
+
+const COMPLETE_AT = 5;          // fire blocks left at which Complete appears
+
+function completeLevel() {
+  if (phase !== "running") return;
+  const alive = level.villagers.length - document.querySelectorAll("#villagers li.gone").length;
+  if (alive < level.villagers.length) return;     // a loss is reported by tickState
+  finish(true, "The fire burned itself out and all " + level.villagers.length +
+               " villagers are still standing. You used " +
+               (level.placements - placementsLeft) + " of " + level.placements + " placements.");
 }
 
 function loadLevelWorld(message) {
@@ -413,6 +429,7 @@ function loadLevelWorld(message) {
   $("fire").textContent = "–";
   showVillagers(null);
   $("result").className = "";
+  $("complete-box").hidden = true;
   setPhase("planning", level.labels.planning);
   if (message) toast(message);
 }
@@ -561,6 +578,7 @@ function collapser(panelId, buttonId) {
 
 $("start").addEventListener("click", () => { startFire(); $("start").blur(); });
 $("restart").addEventListener("click", () => loadLevelWorld("Level restarted"));
+$("complete").addEventListener("click", () => { completeLevel(); $("complete").blur(); });
 $("again").addEventListener("click", () => loadLevelWorld("Level restarted"));
 // "Open in sandbox" carries the level over exactly as it is now (the scene you
 // just won or lost in): the world is saved, gzipped and passed to sim.html in
