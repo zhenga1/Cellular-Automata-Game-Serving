@@ -4,6 +4,7 @@
 *.wasm binary
 *.gz binary
 *.jpg binary
+*.png binary
 *.js -text
 *.html -text
 *.json -text
