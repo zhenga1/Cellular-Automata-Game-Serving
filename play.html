@@ -562,7 +562,29 @@ function collapser(panelId, buttonId) {
 $("start").addEventListener("click", () => { startFire(); $("start").blur(); });
 $("restart").addEventListener("click", () => loadLevelWorld("Level restarted"));
 $("again").addEventListener("click", () => loadLevelWorld("Level restarted"));
-$("sandbox").addEventListener("click", () => { location.href = "sim.html"; });
+// "Open in sandbox" carries the level over exactly as it is now (the scene you
+// just won or lost in): the world is saved, gzipped and passed to sim.html in
+// sessionStorage, which survives the navigation within this tab.
+async function openInSandbox() {
+  let url = "sim.html";
+  try {
+    call("ca_save", null, ["string"], ["handoff.demo"]);
+    const raw = FS.readFile("/out/handoff.demo");
+    const gz = new Uint8Array(await new Response(
+      new Blob([raw]).stream().pipeThrough(new CompressionStream("gzip"))).arrayBuffer());
+    let bin = "";
+    for (let i = 0; i < gz.length; i += 0x8000) bin += String.fromCharCode.apply(null, gz.subarray(i, i + 0x8000));
+    sessionStorage.setItem("ca-play-handoff", JSON.stringify({
+      name: level.name, camera: level.camera, data: btoa(bin)
+    }));
+    url = "sim.html?from=play";
+  } catch (err) {
+    console.error(err);
+    toast("Could not carry the level over, opening the sandbox");
+  }
+  location.href = url;
+}
+$("sandbox").addEventListener("click", openInSandbox);
 $("spawner").addEventListener("change", e =>
   call("ca_set_spawner", null, ["number"], [e.target.checked ? 1 : 0]));
 $("brush").addEventListener("input", e => setBrush(Number(e.target.value)));
