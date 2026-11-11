@@ -3,145 +3,293 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Cellular Automata Sandbox</title>
-<meta name="description" content="A 3D falling-sand cellular automata sandbox that runs in the browser. Pour sand, water, lava and fire and watch them interact.">
+<title>World Simulator &mdash; Cellular Automata</title>
+<meta name="description" content="World Simulator: a 3D falling-sand cellular automata world in your browser. Sand piles up, water flows, lava melts snow into steam, and fire spreads through wood and grass.">
 <meta name="color-scheme" content="dark">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
 <style>
   :root {
-    --bg: #15171c;
-    --card: #1d2027;
-    --card-hover: #232731;
+    --bg: #121418;
+    --card: #1b1e25;
+    --card-hover: #22262f;
     --border: rgba(255, 255, 255, 0.08);
-    --text: #e8e9ec;
-    --muted: #9095a1;
+    --text: #eceef2;
+    --muted: #979cab;
     --accent: #7cc4ff;
-    --radius: 16px;
-    /* The two soft glows behind the page; each theme recolours them */
-    --glow-a: rgba(228, 125, 25, 0.10);
-    --glow-b: rgba(37, 125, 255, 0.10);
+    --radius: 18px;
+    --glow-a: rgba(228, 125, 25, 0.12);
+    --glow-b: rgba(37, 125, 255, 0.12);
+    --display: "Space Grotesk", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    --mono: "JetBrains Mono", ui-monospace, Consolas, monospace;
   }
-  /* Themes, picked with the material squares at the top. Stone is the default above. */
-  :root[data-theme="sand"]  { --bg: #1b1814; --card: #25211b; --card-hover: #2d2820; --accent: #f2d29b;
-                              --glow-a: rgba(238, 208, 162, 0.16); --glow-b: rgba(214, 170, 96, 0.10); }
-  :root[data-theme="water"] { --bg: #0e1520; --card: #16202f; --card-hover: #1c2939; --accent: #6fb6ff;
-                              --glow-a: rgba(37, 125, 255, 0.20); --glow-b: rgba(60, 200, 230, 0.10); }
-  :root[data-theme="lava"]  { --bg: #1c130d; --card: #281c14; --card-hover: #31231a; --accent: #ffa75a;
-                              --glow-a: rgba(228, 125, 25, 0.22); --glow-b: rgba(255, 190, 60, 0.08); }
-  :root[data-theme="fire"]  { --bg: #1c0e0e; --card: #2a1616; --card-hover: #331b1b; --accent: #ff7b68;
-                              --glow-a: rgba(228, 45, 2, 0.22); --glow-b: rgba(255, 120, 40, 0.10); }
-  :root[data-theme="grass"] { --bg: #0f1810; --card: #172318; --card-hover: #1c2b1e; --accent: #7fdc8c;
-                              --glow-a: rgba(30, 160, 12, 0.18); --glow-b: rgba(170, 220, 90, 0.08); }
+  /* Themes, picked with the material squares in the header. Stone is the default above. */
+  :root[data-theme="sand"]  { --bg: #19160f; --card: #241f17; --card-hover: #2c261c; --accent: #f2d29b;
+                              --glow-a: rgba(238, 208, 162, 0.18); --glow-b: rgba(214, 170, 96, 0.10); }
+  :root[data-theme="water"] { --bg: #0c131d; --card: #142030; --card-hover: #1a283b; --accent: #6fb6ff;
+                              --glow-a: rgba(37, 125, 255, 0.22); --glow-b: rgba(60, 200, 230, 0.10); }
+  :root[data-theme="lava"]  { --bg: #1a110b; --card: #271a12; --card-hover: #302118; --accent: #ffa75a;
+                              --glow-a: rgba(228, 125, 25, 0.24); --glow-b: rgba(255, 190, 60, 0.08); }
+  :root[data-theme="fire"]  { --bg: #1a0c0c; --card: #281515; --card-hover: #321a1a; --accent: #ff7b68;
+                              --glow-a: rgba(228, 45, 2, 0.24); --glow-b: rgba(255, 120, 40, 0.10); }
+  :root[data-theme="grass"] { --bg: #0d160e; --card: #162217; --card-hover: #1b2a1d; --accent: #7fdc8c;
+                              --glow-a: rgba(30, 160, 12, 0.20); --glow-b: rgba(170, 220, 90, 0.08); }
+
   * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
+  html { scroll-behavior: smooth; }
   html, body { margin: 0; min-height: 100%; }
   body {
     background:
-      radial-gradient(1200px 600px at 15% -10%, var(--glow-a), transparent 60%),
-      radial-gradient(900px 500px at 100% 0%, var(--glow-b), transparent 60%),
+      radial-gradient(1200px 640px at 10% -10%, var(--glow-a), transparent 60%),
+      radial-gradient(1000px 560px at 100% 0%, var(--glow-b), transparent 60%),
       var(--bg);
-    transition: background-color .4s ease;
+    background-color: var(--bg);
+    transition: background-color .5s ease;
     color: var(--text);
-    font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-    display: flex; flex-direction: column; min-height: 100vh;
+    font: 16px/1.6 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   }
-  main {
-    flex: 1; width: 100%; max-width: 980px; margin: 0 auto;
-    padding: 72px 16px 48px;
+  a { color: var(--accent); }
+  .wrap { width: 100%; max-width: 1100px; margin: 0 auto; padding: 0 16px; }
+  h1, h2, h3 { font-family: var(--display); letter-spacing: -0.02em; }
+  .eyebrow {
+    font: 600 12px/1 var(--mono); text-transform: uppercase; letter-spacing: .14em;
+    color: var(--accent); margin: 0 0 14px;
   }
-  .hero { margin-bottom: 40px; }
-  .voxels { display: flex; gap: 6px; margin-bottom: 20px; }
+
+  /* ---------------------------------------------------------- header */
+  header.top {
+    position: sticky; top: 0; z-index: 10;
+    backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+    background: color-mix(in srgb, var(--bg) 72%, transparent);
+    border-bottom: 1px solid var(--border);
+  }
+  header.top .wrap { display: flex; align-items: center; gap: 20px; height: 60px; }
+  .brand { display: flex; align-items: center; gap: 10px; color: var(--text); text-decoration: none;
+           font: 700 17px/1 var(--display); white-space: nowrap; }
+  .brand svg { flex: none; }
+  nav.links { display: flex; gap: 4px; margin-left: auto; }
+  nav.links a { color: var(--muted); text-decoration: none; font-size: 14px; padding: 6px 10px; border-radius: 8px; }
+  nav.links a:hover { color: var(--text); background: var(--card); }
+  .voxels { display: flex; gap: 6px; }
   .voxels button {
-    width: 22px; height: 22px; border-radius: 5px; border: 0; padding: 0; cursor: pointer;
-    box-shadow: inset 0 -4px 0 rgba(0, 0, 0, 0.22), inset 0 0 0 1px rgba(255, 255, 255, 0.12);
+    width: 18px; height: 18px; border-radius: 4px; border: 0; padding: 0; cursor: pointer;
+    box-shadow: inset 0 -3px 0 rgba(0, 0, 0, 0.25), inset 0 0 0 1px rgba(255, 255, 255, 0.14);
     transition: transform .15s ease, box-shadow .15s ease;
   }
   .voxels button:hover { transform: translateY(-2px); }
   .voxels button[aria-pressed="true"] {
-    transform: translateY(-3px);
-    box-shadow: inset 0 -4px 0 rgba(0, 0, 0, 0.22), 0 0 0 2px var(--bg), 0 0 0 4px var(--accent);
+    transform: translateY(-2px);
+    box-shadow: inset 0 -3px 0 rgba(0, 0, 0, 0.25), 0 0 0 2px var(--bg), 0 0 0 4px var(--accent);
   }
   .voxels button:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
-  h1 { margin: 0 0 10px; font-size: clamp(30px, 5vw, 44px); line-height: 1.1; letter-spacing: -0.5px; }
-  .tagline { margin: 0; color: var(--muted); font-size: 17px; max-width: 560px; }
 
-  .modes { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; }
-  .mode {
-    display: flex; flex-direction: column; overflow: hidden;
-    background: var(--card); border: 1px solid var(--border); border-radius: var(--radius);
-    color: inherit; text-decoration: none;
+  /* ------------------------------------------------------------ hero */
+  .hero { position: relative; overflow: hidden; border-bottom: 1px solid var(--border); }
+  #sandbox {
+    position: absolute; inset: 0; width: 100%; height: 100%;
+    image-rendering: pixelated; opacity: .9; cursor: crosshair; touch-action: none;
+    -webkit-mask-image: linear-gradient(90deg, transparent 0%, rgba(0,0,0,.25) 30%, #000 62%);
+            mask-image: linear-gradient(90deg, transparent 0%, rgba(0,0,0,.25) 30%, #000 62%);
+  }
+  .hero .wrap { position: relative; padding-top: 96px; padding-bottom: 104px; pointer-events: none; }
+  .hero .wrap > * { pointer-events: auto; }
+  .hero h1 { margin: 0; font-size: clamp(44px, 8vw, 92px); line-height: .95; max-width: 9ch; }
+  .hero h1 .sub {
+    display: block; margin-top: 18px;
+    font: 600 clamp(16px, 2.2vw, 22px)/1.2 var(--mono); letter-spacing: .02em;
+    color: var(--accent);
+  }
+  .hero h1 .sub::before { content: "\2014\00a0"; color: var(--muted); }
+  .hero .lede { margin: 28px 0 0; font-size: clamp(17px, 1.6vw, 20px); color: var(--text); max-width: 34ch; }
+  .actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 32px; }
+  .btn {
+    display: inline-flex; align-items: center; gap: 8px; padding: 12px 18px; border-radius: 12px;
+    font-weight: 600; text-decoration: none; border: 1px solid var(--border); color: var(--text);
+    background: color-mix(in srgb, var(--card) 85%, transparent);
     transition: transform .15s ease, background .15s ease, border-color .15s ease;
   }
-  a.mode:hover { transform: translateY(-3px); background: var(--card-hover); border-color: rgba(124, 196, 255, 0.4); }
-  a.mode:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
-  .thumb { aspect-ratio: 16 / 9; background: #2a2d35; position: relative; overflow: hidden; }
-  .thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
-  /* A level map is square, so show all of it rather than cropping the ends off. */
-  .thumb img.map { object-fit: contain; background: #1b1d23; image-rendering: pixelated; }
-  .body { padding: 18px 20px 20px; display: flex; flex-direction: column; gap: 8px; flex: 1; }
+  .btn:hover { transform: translateY(-2px); background: var(--card-hover); }
+  .btn.primary { background: var(--accent); color: #0d0f14; border-color: transparent; }
+  .btn.primary:hover { filter: brightness(1.08); background: var(--accent); }
+  .btn:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
+  .pour-hint {
+    position: absolute; right: 16px; bottom: 16px; z-index: 1;
+    font: 12px/1 var(--mono); color: var(--muted); letter-spacing: .04em;
+    background: color-mix(in srgb, var(--bg) 70%, transparent); padding: 7px 10px; border-radius: 8px;
+    border: 1px solid var(--border); pointer-events: none;
+  }
+
+  /* -------------------------------------------------------- sections */
+  section.block { padding: 88px 0 0; }
+  section[id] { scroll-margin-top: 72px; }
+  .block h2 { font-size: clamp(28px, 3.4vw, 40px); line-height: 1.1; margin: 0 0 14px; }
+  .block .intro { color: var(--muted); font-size: 17px; max-width: 62ch; margin: 0 0 28px; }
+
+  /* Simple rules, random outcomes */
+  .rules { display: grid; grid-template-columns: 1.1fr 1fr; gap: 48px; align-items: start; }
+  .rules p { color: var(--muted); font-size: 17px; margin: 0 0 16px; max-width: 58ch; }
+  .rules p strong { color: var(--text); font-weight: 600; }
+  .rule-cards { display: grid; gap: 14px; }
+  .rule {
+    display: grid; grid-template-columns: 96px 1fr; gap: 16px; align-items: center;
+    background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 14px;
+  }
+  .rule .grid3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 3px; width: 96px; height: 96px; }
+  .rule .grid3 span {
+    border-radius: 4px; background: rgba(255,255,255,.05); position: relative;
+    font: 600 10px/1 var(--mono); color: var(--text); display: grid; place-items: center;
+  }
+  .rule .grid3 span.me { box-shadow: inset 0 -4px 0 rgba(0,0,0,.25); }
+  .rule .grid3 span.go { background: color-mix(in srgb, var(--accent) 22%, transparent); outline: 1px dashed var(--accent); }
+  .rule h3 { margin: 0 0 4px; font-size: 17px; }
+  .rule p { margin: 0; font-size: 14px; }
+  .rule code { font: 12px var(--mono); color: var(--accent); }
+
+  /* cards */
+  .cards { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; }
+  .cards.three { grid-template-columns: repeat(3, 1fr); }
+  .card {
+    display: flex; flex-direction: column; overflow: hidden; color: inherit; text-decoration: none;
+    background: var(--card); border: 1px solid var(--border); border-radius: var(--radius);
+    transition: transform .2s ease, background .2s ease, border-color .2s ease, box-shadow .2s ease;
+  }
+  a.card:hover { transform: translateY(-4px); background: var(--card-hover);
+                 border-color: color-mix(in srgb, var(--accent) 45%, transparent);
+                 box-shadow: 0 18px 40px -20px color-mix(in srgb, var(--accent) 55%, transparent); }
+  a.card:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
+  .thumb { aspect-ratio: 16 / 9; background: #20232b; overflow: hidden; }
+  .thumb img { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform .4s ease; }
+  a.card:hover .thumb img { transform: scale(1.04); }
+  .thumb img.map { object-fit: contain; background: #181a20; image-rendering: pixelated; }
+  .card .body { padding: 18px 20px 20px; display: flex; flex-direction: column; gap: 8px; flex: 1; }
   .title-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
-  .mode h2 { margin: 0; font-size: 20px; }
-  .mode p { margin: 0; color: var(--muted); }
+  .card h3 { margin: 0; font-size: 21px; }
+  .card p { margin: 0; color: var(--muted); font-size: 15px; }
   .cta { margin-top: auto; padding-top: 10px; color: var(--accent); font-weight: 600; }
   .badge {
-    font-size: 11px; text-transform: uppercase; letter-spacing: .6px; white-space: nowrap;
-    padding: 3px 8px; border-radius: 999px; border: 1px solid var(--border); color: var(--muted);
+    font: 600 10px/1 var(--mono); text-transform: uppercase; letter-spacing: .1em; white-space: nowrap;
+    padding: 5px 8px; border-radius: 999px; border: 1px solid var(--border); color: var(--muted);
   }
 
-  /* World gallery, filled from worlds/worlds.json */
-  .worlds { margin-top: 48px; }
-  .worlds h2 { margin: 0 0 4px; font-size: 20px; }
-  .worlds > p { margin: 0 0 16px; color: var(--muted); }
-  .world-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 14px; }
+  /* world galleries, filled from worlds/worlds.json */
+  .world-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 16px; }
   .world {
     display: block; overflow: hidden; color: inherit; text-decoration: none;
-    background: var(--card); border: 1px solid var(--border); border-radius: 12px;
-    transition: transform .15s ease, border-color .15s ease;
+    background: var(--card); border: 1px solid var(--border); border-radius: 14px;
+    transition: transform .2s ease, border-color .2s ease;
   }
-  .world:hover { transform: translateY(-2px); border-color: rgba(124, 196, 255, 0.4); }
+  .world:hover { transform: translateY(-3px); border-color: color-mix(in srgb, var(--accent) 45%, transparent); }
   .world:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
-  .world img { display: block; width: 100%; height: auto; aspect-ratio: 16 / 9; object-fit: cover; background: #2a2d35; }
-  .world div { padding: 10px 12px 12px; }
-  .world strong { display: block; font-size: 15px; }
+  .world img { display: block; width: 100%; height: auto; aspect-ratio: 16 / 9; object-fit: cover; background: #20232b; }
+  .world div { padding: 12px 14px 14px; }
+  .world strong { display: block; font-family: var(--display); font-size: 16px; }
   .world span { display: block; color: var(--muted); font-size: 13px; margin-top: 2px; }
+  .sub-gallery { margin-top: 40px; }
+  .sub-gallery h3 { font-size: 20px; margin: 0 0 4px; }
+  .sub-gallery > p { color: var(--muted); margin: 0 0 16px; font-size: 15px; }
 
-  footer {
-    max-width: 980px; width: 100%; margin: 0 auto; padding: 24px 16px 32px;
-    color: var(--muted); font-size: 13px; border-top: 1px solid var(--border);
+  /* Where this is going */
+  .vision {
+    margin-top: 88px; padding: 56px; border-radius: 28px; position: relative; overflow: hidden;
+    background:
+      radial-gradient(600px 300px at 90% 0%, color-mix(in srgb, var(--accent) 16%, transparent), transparent 70%),
+      var(--card);
+    border: 1px solid var(--border);
   }
+  .vision h2 { margin-top: 0; font-size: clamp(28px, 3.4vw, 40px); line-height: 1.1; max-width: 22ch; }
+  .vision > p { color: var(--muted); font-size: 17px; max-width: 70ch; margin: 0 0 16px; }
+  .vision > p strong { color: var(--text); font-weight: 600; }
+  .loop { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-top: 32px; counter-reset: step; }
+  .loop li {
+    list-style: none; position: relative; padding: 18px 16px 16px; border-radius: 14px;
+    background: color-mix(in srgb, var(--bg) 55%, transparent); border: 1px solid var(--border);
+    counter-increment: step;
+  }
+  .loop li::before {
+    content: counter(step, decimal-leading-zero); display: block;
+    font: 600 12px/1 var(--mono); color: var(--accent); margin-bottom: 10px;
+  }
+  .loop li:not(:last-child)::after {
+    content: "\2192"; position: absolute; right: -12px; top: 50%; transform: translateY(-50%);
+    color: var(--accent); font-size: 16px; z-index: 1;
+  }
+  .loop h3 { margin: 0 0 6px; font-size: 16px; }
+  .loop p { margin: 0; color: var(--muted); font-size: 14px; }
+  .loop-note { margin-top: 14px; font: 12px var(--mono); color: var(--muted); }
+  .loop-note::before { content: "\21BA  "; color: var(--accent); }
 
   /* Community: a placeholder until sharing exists */
   .community {
-    margin-top: 56px; padding: 28px; border-radius: var(--radius);
-    border: 1px dashed rgba(124, 196, 255, 0.35);
-    background: linear-gradient(135deg, rgba(124, 196, 255, 0.07), rgba(228, 125, 25, 0.05));
+    margin-top: 28px; padding: 32px; border-radius: var(--radius);
+    border: 1px dashed color-mix(in srgb, var(--accent) 45%, transparent);
+    background: color-mix(in srgb, var(--accent) 6%, transparent);
     display: grid; grid-template-columns: 1fr auto; gap: 16px; align-items: center;
   }
-  .community h2 { margin: 0 0 6px; font-size: 20px; }
-  .community p { margin: 0; color: var(--muted); max-width: 560px; }
-  .community .badge { justify-self: end; }
+  .community h2 { margin: 0 0 6px; font-size: 26px; }
+  .community p { margin: 0; color: var(--muted); max-width: 60ch; }
 
-  @media (max-width: 720px) {
+  footer {
+    margin-top: 88px; padding: 28px 0 40px; border-top: 1px solid var(--border);
+    color: var(--muted); font-size: 13px;
+  }
+  footer .wrap { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12px; }
+
+  @media (max-width: 900px) {
+    .rules { grid-template-columns: 1fr; gap: 28px; }
+    .cards.three { grid-template-columns: 1fr 1fr; }
+    .loop { grid-template-columns: 1fr 1fr; }
+    .loop li:nth-child(2)::after { display: none; }
+    .vision { padding: 32px 22px; }
+  }
+  @media (max-width: 680px) {
+    nav.links { display: none; }
+    .voxels { margin-left: auto; }
+    .cards, .cards.three, .loop { grid-template-columns: 1fr; }
+    .loop li::after { display: none; }
+    .hero .wrap { padding-top: 64px; padding-bottom: 80px; }
+    #sandbox { opacity: .55;
+               -webkit-mask-image: linear-gradient(180deg, transparent 0%, transparent 62%, #000 100%);
+                       mask-image: linear-gradient(180deg, transparent 0%, transparent 62%, #000 100%); }
     .community { grid-template-columns: 1fr; }
-    .community .badge { justify-self: start; }
-    main { padding-top: 48px; }
-    .modes { grid-template-columns: 1fr; }
+    .pour-hint { display: none; }
   }
   @media (prefers-reduced-motion: reduce) {
-    .mode, .world { transition: none; }
-    a.mode:hover, .world:hover { transform: none; }
+    html { scroll-behavior: auto; }
+    .card, .world, .btn, .thumb img { transition: none; }
+    a.card:hover, .world:hover, .btn:hover { transform: none; }
+    a.card:hover .thumb img { transform: none; }
   }
 </style>
 </head>
 <body>
 <script>
-  // Material squares at the top pick the page theme; remembered in this browser.
+  // The material squares in the header pick the page theme; remembered in this browser.
   (function () {
     let saved = null;
     try { saved = localStorage.getItem("ca-theme"); } catch (e) {}
     if (saved && saved !== "stone") document.documentElement.dataset.theme = saved;
   })();
 </script>
-<main>
-  <section class="hero">
+
+<header class="top">
+  <div class="wrap">
+    <a class="brand" href="./" aria-label="World Simulator home">
+      <svg width="26" height="26" viewBox="0 0 26 26" aria-hidden="true">
+        <path d="M13 2 23 7.5v11L13 24 3 18.5v-11Z" fill="var(--accent)" opacity=".25"/>
+        <path d="M13 2 23 7.5 13 13 3 7.5Z" fill="var(--accent)"/>
+        <path d="M13 13v11L3 18.5v-11Z" fill="var(--accent)" opacity=".6"/>
+      </svg>
+      World Simulator
+    </a>
+    <nav class="links" aria-label="Sections">
+      <a href="#rules">Rules</a>
+      <a href="#modes">Modes</a>
+      <a href="#games">Games</a>
+      <a href="#worlds">Worlds</a>
+      <a href="#vision">Vision</a>
+    </nav>
     <div class="voxels" role="group" aria-label="Page theme">
       <button type="button" data-theme="sand"  aria-pressed="false" title="Sand theme"  aria-label="Sand theme"  style="background:rgb(238,208,162)"></button>
       <button type="button" data-theme="water" aria-pressed="false" title="Water theme" aria-label="Water theme" style="background:rgb(37,125,255)"></button>
@@ -150,86 +298,177 @@
       <button type="button" data-theme="grass" aria-pressed="false" title="Grass theme" aria-label="Grass theme" style="background:rgb(30,130,12)"></button>
       <button type="button" data-theme="stone" aria-pressed="false" title="Stone theme" aria-label="Stone theme" style="background:rgb(135,140,140)"></button>
     </div>
-    <h1>Cellular Automata Sandbox</h1>
-    <p class="tagline">A 3D falling-sand world in your browser. Sand piles up, water flows, lava melts snow into steam, and fire spreads through wood and grass.</p>
-  </section>
+  </div>
+</header>
 
-  <section class="modes" aria-label="Modes">
-    <a class="mode" href="sim.html">
-      <div class="thumb"><img src="preview.jpg" alt="Voxel world with sand, lava, fire and smoke" width="960" height="540"></div>
-      <div class="body">
-        <div class="title-row"><h2>Simulation</h2></div>
-        <p>Free-play sandbox in any of the worlds below. Pour 10 materials, place spawners that keep emitting them, and save or load your own worlds.</p>
-        <span class="cta">Open simulation &rarr;</span>
+<main>
+  <section class="hero" aria-labelledby="title">
+    <canvas id="sandbox" aria-hidden="true"></canvas>
+    <div class="wrap">
+      <p class="eyebrow">A falling-sand world</p>
+      <h1 id="title">World Simulator<span class="sub">Cellular Automata</span></h1>
+      <p class="lede">A 3D falling-sand world in your browser. Sand piles up, water flows, lava melts snow into steam, and fire spreads through wood and grass.</p>
+      <div class="actions">
+        <a class="btn primary" href="sim.html">Open the simulation &rarr;</a>
+        <a class="btn" href="#games">Play a level</a>
       </div>
-    </a>
+    </div>
+    <span class="pour-hint">drag to pour</span>
+  </section>
 
-    <a class="mode" href="#games">
-      <div class="thumb"><img class="map" src="levels/lava-fork.png" alt="Map of level 1: a lava vent above a forked gutter, an empty pit to one side and the village below" width="384" height="384"></div>
-      <div class="body">
-        <div class="title-row"><h2>Play</h2><span class="badge">2 games</span></div>
-        <p>Challenge levels with a goal and a limited kit: protect a village in <strong>Save the Villagers</strong>, or burn everything down in <strong>Destroy the World</strong>.</p>
-        <span class="cta">Choose a game below &darr;</span>
+  <div class="wrap">
+    <section class="block" id="rules" aria-labelledby="rules-title">
+      <p class="eyebrow">Simple rules, random outcomes</p>
+      <div class="rules">
+        <div>
+          <h2 id="rules-title">A small world, made of simple rules</h2>
+          <p>Every block in this world follows a handful of local rules. A grain of sand looks at the cell below it and, if it can, falls; water looks sideways too; fire looks at its neighbours and decides, by a roll of the dice, whether to spread. Nothing is scripted and no block knows the bigger picture. The dunes, rivers and wildfires you see are what those tiny rules add up to.</p>
+          <p>That is the idea of <strong>cellular automata</strong>: a deliberately <strong>simplistic interpretation of the real world</strong>. Real sand, water and fire are vastly more complicated, but they share the same character. Their behaviour is <strong>random and stochastic</strong>: you can never say exactly which grain will tumble left or which leaf will catch next, only what tends to happen. Run the same scene twice and it plays out differently, the way the real world does.</p>
+        </div>
+        <div class="rule-cards" aria-label="Examples of the rules">
+          <div class="rule">
+            <div class="grid3" aria-hidden="true">
+              <span></span><span class="me" style="background:rgb(238,208,162)"></span><span></span>
+              <span class="go">&#x2199;</span><span class="go">&#x2193;</span><span class="go">&#x2198;</span>
+              <span></span><span></span><span></span>
+            </div>
+            <div><h3>Sand</h3><p>Falls straight down if it can, otherwise slides into a random empty diagonal. Piles settle at 45&deg;.</p></div>
+          </div>
+          <div class="rule">
+            <div class="grid3" aria-hidden="true">
+              <span></span><span></span><span></span>
+              <span class="go">&#x2190;</span><span class="me" style="background:rgb(37,125,255)"></span><span class="go">&#x2192;</span>
+              <span class="go">&#x2199;</span><span class="go">&#x2193;</span><span class="go">&#x2198;</span>
+            </div>
+            <div><h3>Water</h3><p>Falls, then wanders sideways at random until it finds its level. It never climbs.</p></div>
+          </div>
+          <div class="rule">
+            <div class="grid3" aria-hidden="true">
+              <span class="go">15%</span><span class="go">15%</span><span class="go">15%</span>
+              <span class="go">15%</span><span class="me" style="background:rgb(228,45,2)"></span><span class="go">15%</span>
+              <span class="go">15%</span><span class="go">15%</span><span class="go">15%</span>
+            </div>
+            <div><h3>Fire</h3><p>Each tick, every burnable neighbour has a <code>15%</code> chance to catch. With nothing left to burn, it dies out.</p></div>
+          </div>
+        </div>
       </div>
-    </a>
-  </section>
+    </section>
 
-  <section class="worlds" id="games" aria-labelledby="games-title">
-    <h2 id="games-title">Games</h2>
-    <p>Each level gives you a small kit and one clear goal.</p>
-    <div class="modes">
-      <a class="mode" href="play.html?level=lava-fork">
-        <div class="thumb"><img class="map" src="levels/lava-fork.png" alt="Map of Lava Fork: a lava vent above a forked gutter, an empty pit to one side and the village below" width="384" height="384" loading="lazy"></div>
-        <div class="body">
-          <div class="title-row"><h2>Save the Villagers</h2><span class="badge">2 levels</span></div>
-          <p>Keep the village standing. Send a lava flow away with a single block of stone, then hold back a wildfire with a full kit.</p>
-          <span class="cta">Play level 1: Lava Fork &rarr;</span>
-        </div>
-      </a>
-      <a class="mode" href="play.html?level=ember-isle">
-        <div class="thumb"><img class="map" src="levels/ember-isle.png" alt="Map of Ember Isle: five islands of sand and grass linked by wooden fuses across stone gullies" width="384" height="384" loading="lazy"></div>
-        <div class="body">
-          <div class="title-row"><h2>Destroy the World</h2><span class="badge">1 level</span></div>
-          <p>Burn it all down with as little as possible. Two fires, five islands of sand and grass, and fuses that link some of them.</p>
-          <span class="cta">Play level 1: Ember Isle &rarr;</span>
-        </div>
-      </a>
-      <a class="mode" href="play.html?level=aqueduct">
-        <div class="thumb"><img class="map" src="levels/aqueduct.png" alt="Map of Aqueduct: a spring and channel on one plateau, a chasm, and the village pool on the other side" width="384" height="384" loading="lazy"></div>
-        <div class="body">
-          <div class="title-row"><h2>Build a Path</h2><span class="badge">Draft</span></div>
-          <p>The village has run dry. Rebuild the aqueduct's missing deck so the spring's water reaches the village pool.</p>
-          <span class="cta">Try the draft: Aqueduct &rarr;</span>
-        </div>
-      </a>
-    </div>
-  </section>
+    <section class="block" id="modes" aria-labelledby="modes-title">
+      <p class="eyebrow">Two ways in</p>
+      <h2 id="modes-title">Build freely, or take on a challenge</h2>
+      <p class="intro">Pour, burn and flood anything you like in the sandbox, or play levels with a small kit and one clear goal.</p>
+      <div class="cards">
+        <a class="card" href="sim.html">
+          <div class="thumb"><img src="preview.jpg" alt="Voxel world of sand hills with grass and flowers" width="960" height="540"></div>
+          <div class="body">
+            <div class="title-row"><h3>Simulation</h3><span class="badge">Sandbox</span></div>
+            <p>Free play in any of the worlds below. Pour ten materials, place spawners that keep emitting them, and save or load your own worlds.</p>
+            <span class="cta">Open the simulation &rarr;</span>
+          </div>
+        </a>
+        <a class="card" href="#games">
+          <div class="thumb"><img class="map" src="levels/lava-fork.png" alt="Map of Lava Fork: a lava vent above a forked gutter, an empty pit to one side and the village below" width="384" height="384"></div>
+          <div class="body">
+            <div class="title-row"><h3>Play</h3><span class="badge">3 games</span></div>
+            <p>Challenge levels: protect a village in <strong>Save the Villagers</strong>, burn everything down in <strong>Destroy the World</strong>, or bring water home in <strong>Build a Path</strong>.</p>
+            <span class="cta">Choose a game &darr;</span>
+          </div>
+        </a>
+      </div>
+    </section>
 
-  <section class="worlds" aria-labelledby="worlds-title" hidden>
-    <h2 id="worlds-title">Worlds</h2>
-    <p>Jump straight into a world in Simulation mode. You can switch worlds from the panel at any time.</p>
-    <div class="world-grid" id="world-grid"></div>
-  </section>
+    <section class="block" id="games" aria-labelledby="games-title">
+      <p class="eyebrow">Play</p>
+      <h2 id="games-title">Games</h2>
+      <p class="intro">Each level gives you a small kit and one clear goal, and every one was tested against the real simulation.</p>
+      <div class="cards three">
+        <a class="card" href="play.html?level=lava-fork">
+          <div class="thumb"><img class="map" src="levels/lava-fork.png" alt="Map of Lava Fork: a lava vent above a forked gutter, an empty pit to one side and the village below" width="384" height="384" loading="lazy"></div>
+          <div class="body">
+            <div class="title-row"><h3>Save the Villagers</h3><span class="badge">2 levels</span></div>
+            <p>Keep the village standing. Turn a lava flow aside with a single block of stone, then hold back a wildfire with a full kit.</p>
+            <span class="cta">Play Lava Fork &rarr;</span>
+          </div>
+        </a>
+        <a class="card" href="play.html?level=ember-isle">
+          <div class="thumb"><img class="map" src="levels/ember-isle.png" alt="Map of Ember Isle: five islands of sand and grass linked by wooden fuses across stone gullies" width="384" height="384" loading="lazy"></div>
+          <div class="body">
+            <div class="title-row"><h3>Destroy the World</h3><span class="badge">1 level</span></div>
+            <p>Burn it all down with as little as possible. Two fires, five islands of sand and grass, and fuses that link some of them.</p>
+            <span class="cta">Play Ember Isle &rarr;</span>
+          </div>
+        </a>
+        <a class="card" href="play.html?level=aqueduct">
+          <div class="thumb"><img class="map" src="levels/aqueduct.png" alt="Map of Aqueduct: a spring and channel on one plateau, a chasm, and the village pool on the other side" width="384" height="384" loading="lazy"></div>
+          <div class="body">
+            <div class="title-row"><h3>Build a Path</h3><span class="badge">Draft</span></div>
+            <p>The village has run dry. Rebuild the aqueduct&rsquo;s missing deck so the spring&rsquo;s water reaches the pool.</p>
+            <span class="cta">Try Aqueduct &rarr;</span>
+          </div>
+        </a>
+      </div>
+    </section>
 
-  <section class="worlds" aria-labelledby="user-worlds-title" hidden>
-    <h2 id="user-worlds-title">User-created worlds</h2>
-    <p>Worlds built and saved by players in the simulation. Some older saves were cut off, so parts of them may be missing.</p>
-    <div class="world-grid" id="user-world-grid"></div>
-  </section>
+    <section class="block" id="worlds" aria-labelledby="worlds-title" hidden>
+      <p class="eyebrow">Explore</p>
+      <h2 id="worlds-title">Worlds</h2>
+      <p class="intro">Jump straight into a world in the simulation. You can switch worlds from its panel at any time.</p>
+      <div class="world-grid" id="world-grid"></div>
+      <div class="sub-gallery" id="user-worlds" hidden>
+        <h3>User-created worlds</h3>
+        <p>Worlds built and saved by players. Some older saves were cut off, so parts of them may be missing.</p>
+        <div class="world-grid" id="user-world-grid"></div>
+      </div>
+    </section>
 
-  <section class="community" aria-labelledby="community-title">
-    <div>
-      <h2 id="community-title">Community</h2>
-      <p>A place to share the worlds and levels you build, and to play other people&rsquo;s. Nothing here yet.</p>
-    </div>
-    <span class="badge">Coming soon</span>
-  </section>
+    <section class="vision" id="vision" aria-labelledby="vision-title">
+      <p class="eyebrow">Where this is going</p>
+      <h2 id="vision-title">A world for people and AI to build, break and solve together</h2>
+      <p>The next step is a <strong>community of people who like building worlds and levels</strong>: realistic, human-aligned scenarios built on cellular automata. A village that needs water, a fire that has to be stopped, a flood that has to go somewhere.</p>
+      <p>Alongside them, <strong>AI agents will learn to do all three jobs</strong>. They will generate voxel scenes, generate levels and scenarios, and find solutions to them, measured against how people solve the same problems. The aim is agents that get a feel for human situations, for the randomness built into every scene, and for what a good, sensible solution looks like. That would make them better at solving real problems the way people would.</p>
+      <ol class="loop">
+        <li><h3>People build</h3><p>Worlds and levels with realistic stakes: villages, rivers, fires.</p></li>
+        <li><h3>Agents generate</h3><p>New voxel scenes and scenarios in the same spirit.</p></li>
+        <li><h3>Agents solve</h3><p>Levels under the same rules, randomness and limited kit as a player.</p></li>
+        <li><h3>People judge</h3><p>Which solutions feel right, and which scenes ring true.</p></li>
+      </ol>
+      <p class="loop-note">and round again, each pass a little closer to how people think</p>
+    </section>
+
+    <section class="community" aria-labelledby="community-title">
+      <div>
+        <h2 id="community-title">Community</h2>
+        <p>A place to share the worlds and levels you build, and to play other people&rsquo;s. Nothing here yet.</p>
+      </div>
+      <span class="badge">Coming soon</span>
+    </section>
+  </div>
 </main>
 
+<footer>
+  <div class="wrap">
+    <span>World Simulator &mdash; built from a C++ / OpenGL CS184 final project, compiled to WebAssembly with Emscripten.</span>
+    <span>Needs a browser with WebGL 2.</span>
+  </div>
+</footer>
+
 <script>
+  // ------------------------------------------------------------ themes
+  const THEME_MATERIALS = {
+    // [granular material, liquid material] for the hero's little simulation
+    stone: [[238, 208, 162], [52, 132, 255]],
+    sand:  [[240, 212, 160], [214, 176, 112]],
+    water: [[70, 150, 255], [140, 210, 255]],
+    lava:  [[236, 120, 24], [255, 186, 72]],
+    fire:  [[228, 60, 20], [255, 142, 46]],
+    grass: [[70, 170, 60], [160, 214, 96]],
+  };
+  let themeNow = "stone";
   (function () {
     const buttons = document.querySelectorAll(".voxels button");
     function apply(theme) {
+      themeNow = theme;
       if (theme === "stone") delete document.documentElement.dataset.theme;
       else document.documentElement.dataset.theme = theme;
       buttons.forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.theme === theme)));
@@ -239,14 +478,131 @@
     apply(document.documentElement.dataset.theme || "stone");
   })();
 
-  // The gallery comes from the same manifest the simulation uses, so a new world in
-  // worlds/worlds.json shows up here automatically. If it fails to load, the section stays hidden.
+  // --------------------------------------------- the hero's sand simulation
+  // A tiny 2D cellular automaton: the same kind of local rules as the 3D world.
+  // Grains fall and slide off diagonals, liquid also wanders sideways, the stone
+  // ledges catch them, and the floor drains slowly so it runs like an hourglass.
+  (function () {
+    const canvas = document.getElementById("sandbox");
+    const ctx = canvas.getContext("2d");
+    const CELL = 5;
+    const EMPTY = 0, STONE = 1, GRAIN = 2, LIQUID = 3;
+    let W = 0, H = 0, type, shade, img, running = true, visible = true;
+    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const spouts = [];
+
+    function resize() {
+      const r = canvas.getBoundingClientRect();
+      W = Math.max(40, Math.floor(r.width / CELL));
+      H = Math.max(30, Math.floor(r.height / CELL));
+      canvas.width = W; canvas.height = H;
+      type = new Uint8Array(W * H);
+      shade = new Uint8Array(W * H);
+      img = ctx.createImageData(W, H);
+      // stone ledges on the right half, where the canvas is not masked out
+      const ledges = 7;
+      for (let k = 0; k < ledges; k++) {
+        const len = 8 + ((k * 13) % 14);
+        const x0 = Math.floor(W * (0.55 + 0.4 * ((k * 0.37) % 1)));
+        const y = Math.floor(H * (0.3 + 0.62 * ((k * 0.53 + 0.2) % 1)));
+        const dir = k % 2 ? 1 : -1;
+        for (let i = 0; i < len; i++) {
+          const x = x0 + i, yy = y + Math.floor(i * dir / 4);
+          if (x > 0 && x < W && yy > 0 && yy < H) type[yy * W + x] = STONE;
+        }
+      }
+      spouts.length = 0;
+      for (let k = 0; k < 3; k++) spouts.push({x: W * (0.6 + 0.14 * k), v: 0.05 + 0.03 * k, liquid: k === 1});
+      if (reduce) { for (let i = 0; i < 700; i++) step(); draw(); }
+    }
+
+    function put(x, y, t) {
+      x = Math.floor(x); y = Math.floor(y);
+      if (x < 1 || x >= W - 1 || y < 0 || y >= H) return;
+      const i = y * W + x;
+      if (type[i] === EMPTY) { type[i] = t; shade[i] = (Math.random() * 40) | 0; }
+    }
+
+    function move(i, j) { type[j] = type[i]; shade[j] = shade[i]; type[i] = EMPTY; }
+
+    let flip = false;
+    function step() {
+      for (const s of spouts) {
+        s.x += s.v;
+        if (s.x < W * 0.55 || s.x > W - 4) s.v = -s.v;
+        for (let k = 0; k < 4; k++) put(s.x + (Math.random() * 7 - 3), 0, s.liquid ? LIQUID : GRAIN);
+      }
+      flip = !flip;
+      for (let y = H - 2; y >= 0; y--) {
+        for (let n = 0; n < W; n++) {
+          const x = flip ? n : W - 1 - n;
+          const i = y * W + x, t = type[i];
+          if (t !== GRAIN && t !== LIQUID) continue;
+          const below = i + W;
+          if (type[below] === EMPTY) { move(i, below); continue; }
+          const d = Math.random() < 0.5 ? -1 : 1;
+          if (x + d > 0 && x + d < W && type[below + d] === EMPTY) { move(i, below + d); continue; }
+          if (x - d > 0 && x - d < W && type[below - d] === EMPTY) { move(i, below - d); continue; }
+          if (t === LIQUID && x + d > 0 && x + d < W && type[i + d] === EMPTY) move(i, i + d);
+        }
+      }
+      // the floor drains, slowly, so the scene keeps flowing
+      const y = H - 1;
+      for (let x = 0; x < W; x++) {
+        const i = y * W + x;
+        if (type[i] >= GRAIN && Math.random() < 0.03) type[i] = EMPTY;
+      }
+    }
+
+    function draw() {
+      const [g, l] = THEME_MATERIALS[themeNow] || THEME_MATERIALS.stone;
+      const d = img.data;
+      for (let i = 0; i < W * H; i++) {
+        const t = type[i], o = i * 4;
+        if (t === EMPTY) { d[o + 3] = 0; continue; }
+        const c = t === STONE ? [92, 96, 104] : t === GRAIN ? g : l;
+        const k = 1 - shade[i] / 160;
+        d[o] = c[0] * k; d[o + 1] = c[1] * k; d[o + 2] = c[2] * k; d[o + 3] = t === LIQUID ? 210 : 255;
+      }
+      ctx.putImageData(img, 0, 0);
+    }
+
+    function loop() {
+      if (running && visible && !reduce) { step(); draw(); }
+      requestAnimationFrame(loop);
+    }
+
+    // drag to pour
+    let pouring = false;
+    function pour(e) {
+      const r = canvas.getBoundingClientRect();
+      const x = (e.clientX - r.left) / CELL, y = (e.clientY - r.top) / CELL;
+      for (let k = 0; k < 6; k++) put(x + Math.random() * 4 - 2, y + Math.random() * 4 - 2, e.shiftKey ? LIQUID : GRAIN);
+      if (reduce) draw();
+    }
+    canvas.addEventListener("pointerdown", (e) => { pouring = true; canvas.setPointerCapture(e.pointerId); pour(e); });
+    canvas.addEventListener("pointermove", (e) => { if (pouring) pour(e); });
+    canvas.addEventListener("pointerup", () => { pouring = false; });
+    canvas.addEventListener("pointercancel", () => { pouring = false; });
+
+    new IntersectionObserver((es) => { visible = es[0].isIntersecting; }).observe(canvas);
+    document.addEventListener("visibilitychange", () => { running = !document.hidden; });
+    let t;
+    window.addEventListener("resize", () => { clearTimeout(t); t = setTimeout(resize, 200); });
+    document.querySelectorAll(".voxels button").forEach((b) => b.addEventListener("click", () => { if (reduce) draw(); }));
+    resize();
+    loop();
+  })();
+
+  // --------------------------------------------------------- world gallery
+  // Built from the same manifest the simulation uses, so a new world in
+  // worlds/worlds.json shows up here by itself. If it fails, the section stays hidden.
   fetch("worlds/worlds.json")
     .then((res) => res.ok ? res.json() : Promise.reject(res.status))
     .then(({ worlds }) => {
       for (const w of worlds) {
-        // "category": "user" worlds (imported saves) get their own section
-        const grid = document.getElementById(w.category === "user" ? "user-world-grid" : "world-grid");
+        const user = w.category === "user";
+        const grid = document.getElementById(user ? "user-world-grid" : "world-grid");
         const a = document.createElement("a");
         a.className = "world";
         a.href = "sim.html?world=" + encodeURIComponent(w.id);
@@ -254,19 +610,15 @@
           src: "worlds/" + w.thumb, alt: "", width: 640, height: 360, loading: "lazy",
         });
         const text = document.createElement("div");
-        const name = Object.assign(document.createElement("strong"), { textContent: w.name });
-        const desc = Object.assign(document.createElement("span"), { textContent: w.description });
-        text.append(name, desc);
+        text.append(Object.assign(document.createElement("strong"), { textContent: w.name }),
+                    Object.assign(document.createElement("span"), { textContent: w.description }));
         a.append(img, text);
         grid.append(a);
-        grid.closest("section").hidden = false;
+        if (user) document.getElementById("user-worlds").hidden = false;
+        document.getElementById("worlds").hidden = false;
       }
     })
     .catch((err) => console.warn("World gallery unavailable:", err));
 </script>
-
-<footer>
-  Built from a C++ / OpenGL CS184 final project, compiled to WebAssembly with Emscripten. Needs a browser with WebGL 2.
-</footer>
 </body>
 </html>
