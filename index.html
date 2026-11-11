@@ -16,14 +16,29 @@
     --muted: #9095a1;
     --accent: #7cc4ff;
     --radius: 16px;
+    /* The two soft glows behind the page; each theme recolours them */
+    --glow-a: rgba(228, 125, 25, 0.10);
+    --glow-b: rgba(37, 125, 255, 0.10);
   }
+  /* Themes, picked with the material squares at the top. Stone is the default above. */
+  :root[data-theme="sand"]  { --bg: #1b1814; --card: #25211b; --card-hover: #2d2820; --accent: #f2d29b;
+                              --glow-a: rgba(238, 208, 162, 0.16); --glow-b: rgba(214, 170, 96, 0.10); }
+  :root[data-theme="water"] { --bg: #0e1520; --card: #16202f; --card-hover: #1c2939; --accent: #6fb6ff;
+                              --glow-a: rgba(37, 125, 255, 0.20); --glow-b: rgba(60, 200, 230, 0.10); }
+  :root[data-theme="lava"]  { --bg: #1c130d; --card: #281c14; --card-hover: #31231a; --accent: #ffa75a;
+                              --glow-a: rgba(228, 125, 25, 0.22); --glow-b: rgba(255, 190, 60, 0.08); }
+  :root[data-theme="fire"]  { --bg: #1c0e0e; --card: #2a1616; --card-hover: #331b1b; --accent: #ff7b68;
+                              --glow-a: rgba(228, 45, 2, 0.22); --glow-b: rgba(255, 120, 40, 0.10); }
+  :root[data-theme="grass"] { --bg: #0f1810; --card: #172318; --card-hover: #1c2b1e; --accent: #7fdc8c;
+                              --glow-a: rgba(30, 160, 12, 0.18); --glow-b: rgba(170, 220, 90, 0.08); }
   * { box-sizing: border-box; }
   html, body { margin: 0; min-height: 100%; }
   body {
     background:
-      radial-gradient(1200px 600px at 15% -10%, rgba(228, 125, 25, 0.10), transparent 60%),
-      radial-gradient(900px 500px at 100% 0%, rgba(37, 125, 255, 0.10), transparent 60%),
+      radial-gradient(1200px 600px at 15% -10%, var(--glow-a), transparent 60%),
+      radial-gradient(900px 500px at 100% 0%, var(--glow-b), transparent 60%),
       var(--bg);
+    transition: background-color .4s ease;
     color: var(--text);
     font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
     display: flex; flex-direction: column; min-height: 100vh;
@@ -34,10 +49,17 @@
   }
   .hero { margin-bottom: 40px; }
   .voxels { display: flex; gap: 6px; margin-bottom: 20px; }
-  .voxels span {
-    width: 18px; height: 18px; border-radius: 4px;
+  .voxels button {
+    width: 22px; height: 22px; border-radius: 5px; border: 0; padding: 0; cursor: pointer;
     box-shadow: inset 0 -4px 0 rgba(0, 0, 0, 0.22), inset 0 0 0 1px rgba(255, 255, 255, 0.12);
+    transition: transform .15s ease, box-shadow .15s ease;
   }
+  .voxels button:hover { transform: translateY(-2px); }
+  .voxels button[aria-pressed="true"] {
+    transform: translateY(-3px);
+    box-shadow: inset 0 -4px 0 rgba(0, 0, 0, 0.22), 0 0 0 2px var(--bg), 0 0 0 4px var(--accent);
+  }
+  .voxels button:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
   h1 { margin: 0 0 10px; font-size: clamp(30px, 5vw, 44px); line-height: 1.1; letter-spacing: -0.5px; }
   .tagline { margin: 0; color: var(--muted); font-size: 17px; max-width: 560px; }
 
@@ -110,15 +132,23 @@
 </style>
 </head>
 <body>
+<script>
+  // Material squares at the top pick the page theme; remembered in this browser.
+  (function () {
+    let saved = null;
+    try { saved = localStorage.getItem("ca-theme"); } catch (e) {}
+    if (saved && saved !== "stone") document.documentElement.dataset.theme = saved;
+  })();
+</script>
 <main>
   <section class="hero">
-    <div class="voxels" aria-hidden="true">
-      <span style="background:rgb(238,208,162)"></span>
-      <span style="background:rgb(37,125,255)"></span>
-      <span style="background:rgb(228,125,25)"></span>
-      <span style="background:rgb(228,45,2)"></span>
-      <span style="background:rgb(30,130,12)"></span>
-      <span style="background:rgb(135,140,140)"></span>
+    <div class="voxels" role="group" aria-label="Page theme">
+      <button type="button" data-theme="sand"  aria-pressed="false" title="Sand theme"  aria-label="Sand theme"  style="background:rgb(238,208,162)"></button>
+      <button type="button" data-theme="water" aria-pressed="false" title="Water theme" aria-label="Water theme" style="background:rgb(37,125,255)"></button>
+      <button type="button" data-theme="lava"  aria-pressed="false" title="Lava theme"  aria-label="Lava theme"  style="background:rgb(228,125,25)"></button>
+      <button type="button" data-theme="fire"  aria-pressed="false" title="Fire theme"  aria-label="Fire theme"  style="background:rgb(228,45,2)"></button>
+      <button type="button" data-theme="grass" aria-pressed="false" title="Grass theme" aria-label="Grass theme" style="background:rgb(30,130,12)"></button>
+      <button type="button" data-theme="stone" aria-pressed="false" title="Stone theme" aria-label="Stone theme" style="background:rgb(135,140,140)"></button>
     </div>
     <h1>Cellular Automata Sandbox</h1>
     <p class="tagline">A 3D falling-sand world in your browser. Sand piles up, water flows, lava melts snow into steam, and fire spreads through wood and grass.</p>
@@ -166,6 +196,18 @@
 </main>
 
 <script>
+  (function () {
+    const buttons = document.querySelectorAll(".voxels button");
+    function apply(theme) {
+      if (theme === "stone") delete document.documentElement.dataset.theme;
+      else document.documentElement.dataset.theme = theme;
+      buttons.forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.theme === theme)));
+      try { localStorage.setItem("ca-theme", theme); } catch (e) {}
+    }
+    buttons.forEach((b) => b.addEventListener("click", () => apply(b.dataset.theme)));
+    apply(document.documentElement.dataset.theme || "stone");
+  })();
+
   // The gallery comes from the same manifest the simulation uses, so a new world in
   // worlds/worlds.json shows up here automatically. If it fails to load, the section stays hidden.
   fetch("worlds/worlds.json")
