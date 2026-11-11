@@ -92,6 +92,13 @@ details li{margin:4px 0}
 #levels a:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
 #timer{height:4px;border-radius:2px;background:rgba(255,255,255,.08);overflow:hidden;margin-top:6px}
 #timer>div{height:100%;width:0;background:var(--good);transition:width .3s}
+#replay{position:fixed;left:50%;bottom:16px;transform:translateX(-50%);width:min(620px,calc(100vw - 32px));padding:10px 14px;display:none;z-index:7}
+#replay.show{display:block}
+#replay .bar{display:flex;align-items:center;gap:10px}
+#replay .bar input[type=range]{flex:1}
+#replay select{font:inherit;color:var(--text);background:rgba(0,0,0,.25);border:1px solid var(--panel-border);border-radius:var(--radius);padding:6px 8px}
+#replay .time{font-variant-numeric:tabular-nums;color:var(--muted);font-size:12px;min-width:92px;text-align:right}
+#replay .title{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.6px}
 #toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%) translateY(20px);background:var(--panel);border:1px solid var(--panel-border);border-radius:var(--radius);padding:8px 14px;opacity:0;transition:all .25s;z-index:6;pointer-events:none}
 #toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 @media (max-width:820px){#brief{width:auto;right:12px;max-height:40vh}#hud{top:auto;bottom:12px;left:12px;right:12px;width:auto;max-height:46vh}}
@@ -192,6 +199,26 @@ details li{margin:4px 0}
       <button id="next" hidden>Next level</button>
       <button id="sandbox">Open in sandbox</button>
     </div>
+    <div class="row" style="margin-top:8px">
+      <button id="watch">Watch replay</button>
+    </div>
+  </div>
+</div>
+
+<div class="panel" id="replay" role="region" aria-label="Replay">
+  <div class="title"><span>Replay</span><button id="replay-exit">Exit replay</button></div>
+  <div class="bar">
+    <button class="icon-btn" id="replay-start" title="Back to the start" aria-label="Back to the start">&#x23EE;</button>
+    <button class="icon-btn primary" id="replay-play" title="Play / pause" aria-label="Play">&#x25B6;</button>
+    <input type="range" id="replay-seek" min="0" max="0" value="0" aria-label="Replay position">
+    <span class="time" id="replay-time">0.0 / 0.0 s</span>
+    <select id="replay-speed" aria-label="Replay speed">
+      <option value="0.25">0.25&times;</option>
+      <option value="0.5">0.5&times;</option>
+      <option value="1" selected>1&times;</option>
+      <option value="2">2&times;</option>
+      <option value="4">4&times;</option>
+    </select>
   </div>
 </div>
 
@@ -353,6 +380,7 @@ function setPhase(next, note) {
 }
 
 function finish(won, text) {
+  recordFrame(true);
   setPhase(won ? "won" : "lost");
   call("ca_set_paused", null, ["number"], [1]);
   const box = $("result");
@@ -412,6 +440,101 @@ function completeLevel() {
                (level.placements - placementsLeft) + " of " + level.placements + " placements.");
 }
 
+/* ------------------------------------------------------------ recording */
+
+// While a level runs, a gzipped snapshot of the world is kept about three times
+// a second, so the run can be replayed afterwards at any speed. Snapshots go
+// through ca_save like the scoring scan does; if a run gets long, every other
+// frame is dropped so memory stays bounded.
+const REC_EVERY_MS = 330, REC_MAX = 480;
+let frames = [], recEvery = REC_EVERY_MS, lastRec = 0, recording = false, recBusy = false;
+
+async function gzip(bytes) {
+  return new Uint8Array(await new Response(
+    new Blob([bytes]).stream().pipeThrough(new CompressionStream("gzip"))).arrayBuffer());
+}
+
+async function recordFrame(force) {
+  if (recBusy || (!force && (phase !== "running" || call("ca_is_paused", "number", [], [])))) return;
+  const now = performance.now();
+  if (!force && now - lastRec < recEvery) return;
+  recBusy = true;
+  try {
+    lastRec = now;
+    call("ca_save", null, ["string"], ["rec.demo"]);
+    const gz = await gzip(FS.readFile("/out/rec.demo"));
+    frames.push(gz);
+    if (frames.length > REC_MAX) {          // keep every other frame, record half as often
+      frames = frames.filter((_, i) => i % 2 === 0);
+      recEvery *= 2;
+    }
+  } catch (err) {
+    console.error(err);
+  } finally {
+    recBusy = false;
+  }
+}
+
+function resetRecording() {
+  frames = [];
+  recEvery = REC_EVERY_MS;
+  lastRec = 0;
+}
+
+/* --------------------------------------------------------------- replay */
+
+let replayIdx = 0, replayTimer = null, replayPlaying = false, finalFrame = null, resultClass = "";
+
+async function showFrame(i) {
+  replayIdx = Math.max(0, Math.min(frames.length - 1, i));
+  FS.writeFile("/out/replay.demo", await gunzip(frames[replayIdx]));
+  call("ca_load", "number", ["string"], ["replay.demo"]);
+  $("replay-seek").value = replayIdx;
+  const secs = s => (s * recEvery / 1000).toFixed(1);
+  $("replay-time").textContent = secs(replayIdx) + " / " + secs(frames.length - 1) + " s";
+}
+
+function setReplayPlaying(on) {
+  replayPlaying = on;
+  $("replay-play").innerHTML = on ? "&#x23F8;" : "&#x25B6;";
+  $("replay-play").setAttribute("aria-label", on ? "Pause" : "Play");
+  clearTimeout(replayTimer);
+  if (on) stepReplay();
+}
+
+async function stepReplay() {
+  if (!replayPlaying) return;
+  if (replayIdx >= frames.length - 1) { setReplayPlaying(false); return; }
+  const started = performance.now();
+  await showFrame(replayIdx + 1);
+  const wait = recEvery / Number($("replay-speed").value) - (performance.now() - started);
+  replayTimer = setTimeout(stepReplay, Math.max(0, wait));
+}
+
+async function enterReplay() {
+  if (frames.length < 2) { toast("This run was too short to replay"); return; }
+  call("ca_set_paused", null, ["number"], [1]);
+  call("ca_save", null, ["string"], ["final.demo"]);
+  finalFrame = FS.readFile("/out/final.demo");
+  resultClass = $("result").className;
+  $("result").className = "";
+  phase = "replay";
+  $("replay-seek").max = frames.length - 1;
+  $("replay").classList.add("show");
+  await showFrame(0);
+  setReplayPlaying(true);
+}
+
+function exitReplay() {
+  setReplayPlaying(false);
+  FS.writeFile("/out/replay.demo", finalFrame);
+  call("ca_load", "number", ["string"], ["replay.demo"]);
+  $("replay").classList.remove("show");
+  phase = resultClass.includes("won") ? "won" : "lost";
+  $("result").className = resultClass;
+  $("watch").focus();
+}
+
 function loadLevelWorld(message) {
   // The level file is already in the in-memory filesystem, so a restart is
   // just a reload of it.
@@ -425,6 +548,7 @@ function loadLevelWorld(message) {
   placementsLeft = level.placements;
   ticks = 0;
   updateTimer();
+  resetRecording();
   $("left").textContent = placementsLeft;
   $("fire").textContent = "–";
   showVillagers(null);
@@ -472,6 +596,7 @@ function buildPalette() {
 
 function startFire() {
   if (phase !== "planning") return;
+  recordFrame(true);                        // the scene as the player set it up
   call("ca_set_paused", null, ["number"], [0]);
   lastScan = performance.now();
   setPhase("running", level.labels.running);
@@ -524,6 +649,11 @@ window.addEventListener("keydown", e => {
 
   // Once the level is decided, the world is frozen; ignore anything that would
   // still drive the simulation.
+  if (phase === "replay") {
+    const MOVE = new Set(["w", "a", "s", "d", "q", "e", " ", "shift", "arrowup", "arrowdown", "arrowleft", "arrowright"]);
+    if (SIM_KEYS.has(key) && !MOVE.has(key)) block();
+    return;
+  }
   if (phase === "won" || phase === "lost") {
     if (SIM_KEYS.has(key)) block();
     return;
@@ -556,6 +686,7 @@ window.addEventListener("keyup", e => {
 function syncPause() {
   const paused = call("ca_is_paused", "number", [], []);
   if (phase === "planning" && !paused) {
+    recordFrame(true);
     lastScan = performance.now();
     setPhase("running", level.labels.running);
   } else if (phase === "running" && paused) {
@@ -578,6 +709,12 @@ function collapser(panelId, buttonId) {
 
 $("start").addEventListener("click", () => { startFire(); $("start").blur(); });
 $("restart").addEventListener("click", () => loadLevelWorld("Level restarted"));
+$("watch").addEventListener("click", enterReplay);
+$("replay-exit").addEventListener("click", exitReplay);
+$("replay-play").addEventListener("click", () => { setReplayPlaying(!replayPlaying); $("replay-play").blur(); });
+$("replay-start").addEventListener("click", () => { setReplayPlaying(false); showFrame(0); $("replay-start").blur(); });
+$("replay-seek").addEventListener("input", e => { setReplayPlaying(false); showFrame(Number(e.target.value)); });
+$("replay-speed").addEventListener("change", e => e.target.blur());
 $("complete").addEventListener("click", () => { completeLevel(); $("complete").blur(); });
 $("again").addEventListener("click", () => loadLevelWorld("Level restarted"));
 // "Open in sandbox" carries the level over exactly as it is now (the scene you
@@ -684,6 +821,7 @@ var Module = {
       requestAnimationFrame(countTick);
       $("canvas").focus();
       setInterval(tickState, 200);
+      setInterval(recordFrame, 110);
     }));
   }
 };
