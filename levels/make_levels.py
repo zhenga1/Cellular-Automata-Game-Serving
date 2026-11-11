@@ -3,7 +3,7 @@
 Run from this folder:  python make_levels.py
 Everything it writes lands in this folder, which play.html reads.
 """
-import hashlib, json, os, random, struct, zlib
+import hashlib, json, math, os, random, struct, zlib
 
 from demo_format import (World, EMPTY, STONE, SAND, WATER, FIRE, SNOW, GRASS,
                          WOOD, TURF, LAVA, LAVA_SPAWNER, FIRE_SPAWNER, pack, unpack)
@@ -246,6 +246,94 @@ def build_lava_fork():
     return w, village
 
 
+# ----------------------------------------------------------------- Ember Isle
+#
+# Destroy the World, level 1. Five islands of sand and grass sit on a stone
+# floor, separated by bare stone gullies that fire cannot cross. Thick wooden
+# plank fuses join some of them into two chains:
+#     A - B - C   (north)        D - E   (south)
+# The player has two fires. One in each chain burns the whole world; two in
+# the same chain leave the other chain standing.
+#
+# Shaped by testing in the real sim (headless Chrome, every island lit alone):
+#   - fire only lives in thick fuel, so every island is a solid 4-deep turf
+#     base (static, burnable; coloured as grass or as sand) and the fuses are
+#     wood as tall as the islands and 7-9 cells wide - thin edges or thin
+#     planks made the fire die out halfway across
+#   - real sand slumps sideways off any edge more than one cell high, and
+#     slumped sand bridged the gullies, so the sand dunes sit on top of the
+#     turf and rise one cell per cell from the island's edge
+#   - lighting any island burns its whole chain and nothing else; the right
+#     answer burned about 98% of the world, a wrong one left about 40%
+EI_W = 64
+EI_DEPTH = 4                                      # island base: turf y 2..5
+EI_ISLANDS = {                                    # x0, x1, z0, z1, kind
+    'A': (4, 20, 40, 58, 'meadow'),
+    'B': (25, 41, 42, 58, 'dune'),
+    'C': (46, 59, 40, 58, 'meadow'),
+    'D': (6, 28, 6, 32, 'dune'),
+    'E': (33, 58, 6, 30, 'meadow'),
+}
+EI_FUSES = [(21, 24, 46, 52), (42, 45, 46, 52), (29, 32, 15, 23)]   # A-B, B-C, D-E
+
+BEDROCK  = (62, 58, 54)
+GRAVEL   = (118, 114, 108)
+PEBBLE   = (150, 146, 138)
+GRASS_C  = (96, 168, 72)
+GRASS_D  = (80, 146, 60)
+SAND_TOP = (240, 214, 160)
+SAND_SHD = (222, 190, 132)
+FLOWERS  = [(242, 120, 160), (250, 214, 80), (190, 130, 240), (255, 255, 240)]
+FUSE_C   = (132, 94, 56)
+
+
+def build_ember_isle():
+    w = World()
+    for cx in range(2):
+        for cz in range(2):
+            w.set(cx * 32, 0, cz * 32, EMPTY)
+    rng = random.Random(77)
+    w.fill(0, EI_W - 1, 0, 0, 0, EI_W - 1, STONE, BEDROCK)
+    # The gullies: a stone floor everywhere, flecked with lighter pebbles
+    for x in range(EI_W):
+        for z in range(EI_W):
+            w.set(x, 1, z, STONE, PEBBLE if rng.random() < 0.08 else GRAVEL)
+
+    for name, (x0, x1, z0, z1, kind) in EI_ISLANDS.items():
+        for x in range(x0, x1 + 1):
+            for z in range(z0, z1 + 1):
+                # round the corners off a little
+                cxd, czd = min(x - x0, x1 - x), min(z - z0, z1 - z)
+                if cxd + czd < 2:
+                    continue
+                base = (GRASS_C if (x + z) % 3 else GRASS_D) if kind == 'meadow' else SAND_SHD
+                w.fill(x, x, 2, 1 + EI_DEPTH, z, z, TURF, base)
+                edge = min(cxd, czd)
+                if kind == 'dune' and edge >= 2:
+                    # real sand dunes, rising one cell per cell from the edge, with a ripple
+                    h = min(4, edge - 1, 2 + int(1.5 * math.sin(x / 2.6) + math.sin(z / 3.1)))
+                    if h > 0:
+                        w.fill(x, x, 2 + EI_DEPTH, 1 + EI_DEPTH + h, z, z, SAND,
+                               SAND_TOP if (x * 7 + z * 3) % 5 else SAND_SHD)
+                elif kind == 'meadow' and edge >= 1 and rng.random() < 0.05:
+                    w.set(x, 2 + EI_DEPTH, z, TURF, rng.choice(FLOWERS))     # a flower
+
+    for x0, x1, z0, z1 in EI_FUSES:
+        w.fill(x0, x1, 2, 1 + EI_DEPTH, z0, z1, WOOD, FUSE_C)
+
+    # A few trees on the meadows, kept away from the island edges
+    for x, z in ((9, 46), (15, 54), (52, 45), (55, 54), (40, 12), (50, 24), (46, 18)):
+        top = 2 + EI_DEPTH
+        for y in range(top, top + 4):
+            w.set(x, y, z, WOOD, TRUNK)
+        for dx in range(-2, 3):
+            for dz in range(-2, 3):
+                for dy in range(0, 3):
+                    if abs(dx) + abs(dz) + dy <= 3:
+                        w.set(x + dx, top + 3 + dy, z + dz, WOOD, LEAF)
+    return w, []
+
+
 LEVELS = [{
     'id': 'lava-fork',
     'game': 'save',
@@ -314,6 +402,38 @@ LEVELS = [{
     'camera': {'eye': [-20, 80, -64], 'look': [50, 2, 48]},
     'size': W,
     'build': build_level1,
+}, {
+    'id': 'ember-isle',
+    'game': 'destroy',
+    'name': 'Ember Isle',
+    'subtitle': 'Destroy the World · Level 1',
+    'brief': 'Five islands of sand and grass, separated by bare stone gullies that fire cannot '
+             'cross. Wooden plank fuses link some of the islands together.',
+    'goal': 'Burn at least 97% of the world. You have two fires.',
+    'hints': [
+        'Fire only travels through things that burn. Stone gullies stop it cold.',
+        'A fuse carries fire from one island to the next, so a lit island takes every island '
+        'it is linked to with it.',
+        'Count the chains of linked islands. Each one needs its own fire.',
+    ],
+    'materials': ['fire'],
+    'spawners': False,
+    'placements': 2,
+    'max_brush': 3,
+    'brush': 3,
+    'hazard': {'label': 'Fire blocks', 'types': [FIRE, FIRE_SPAWNER]},
+    'win': {'type': 'destroy', 'target': 0.97, 'types': [SAND, GRASS, 7, WOOD, TURF]},
+    'labels': {
+        'kit': 'Your fires',
+        'start': 'Start the burn',
+        'running': 'Burning. You can still place a fire if you have one left.',
+        'planning': 'Paused. Place your fires, then start the burn.',
+        'won': 'The world is ash',
+        'lost': 'Some of the world survived',
+    },
+    'camera': {'eye': [32, 92, -26], 'look': [32, 0, 30]},
+    'size': EI_W,
+    'build': build_ember_isle,
 }]
 
 
@@ -373,6 +493,10 @@ def main():
         entry['hash'] = hashlib.sha256(
             open(os.path.join(here, entry['file']), 'rb').read()).hexdigest()[:12]
         entry['villagers'] = villagers
+        if spec['win']['type'] == 'destroy':
+            # how much there is to burn at the start, so Play can show % destroyed
+            n = w.counts()
+            entry['win'] = dict(spec['win'], total=sum(n[t] for t in spec['win']['types']))
         out.append(entry)
         n = w.counts()
         print('%s: %d chunks, turf %d, wood %d, fire %d, water %d, lava spawners %d, villager cells %d'

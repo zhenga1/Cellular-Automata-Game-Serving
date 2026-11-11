@@ -8,6 +8,7 @@
 <style>
 :root{--bg:#15171c;--panel:rgba(22,24,30,.86);--panel-border:rgba(255,255,255,.08);--text:#e8e9ec;--muted:#9095a1;--accent:#7cc4ff;--good:#7fe0a6;--bad:#ff8a80;--warn:#ffc46b;--hover:rgba(255,255,255,.07);--active:rgba(124,196,255,.18);--radius:10px}
 *{box-sizing:border-box}
+[hidden]{display:none!important}
 html,body{margin:0;height:100%;overflow:hidden;background:var(--bg);color:var(--text);font:13px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
 #canvas{position:fixed;inset:0;width:100vw;height:100vh;display:block;outline:0;background:#404040}
 #overlay{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;background:var(--bg);z-index:20;transition:opacity .4s ease}
@@ -91,6 +92,9 @@ details li{margin:4px 0}
 #levels a[aria-current=page]{background:var(--active);border-color:var(--accent)}
 #levels a:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
 #timer{height:4px;border-radius:2px;background:rgba(255,255,255,.08);overflow:hidden;margin-top:6px}
+#burnbar{height:4px;border-radius:2px;background:rgba(255,255,255,.08);overflow:hidden;margin-top:6px;position:relative}
+#burnbar>div{height:100%;width:0;background:var(--warn);transition:width .3s}
+#burnbar::after{content:"";position:absolute;top:-2px;bottom:-2px;width:2px;background:var(--text);left:var(--goal,97%)}
 #timer>div{height:100%;width:0;background:var(--good);transition:width .3s}
 #replay{position:fixed;left:50%;bottom:16px;transform:translateX(-50%);width:min(620px,calc(100vw - 32px));padding:10px 14px;display:none;z-index:7}
 #replay.show{display:block}
@@ -116,10 +120,11 @@ details li{margin:4px 0}
   </header>
   <div class="sub" id="level-sub"></div>
   <nav id="levels" aria-label="Levels"></nav>
+  <p id="other-game" style="margin:6px 0 0;font-size:12px"></p>
   <h2 id="level-name"></h2>
   <p id="level-brief"></p>
   <div id="goal"><b>Goal</b><span id="level-goal"></span></div>
-  <div class="section">
+  <div class="section" id="villagers-box">
     <div class="label"><b id="villagers-title" style="font-weight:inherit">Villagers</b> <span id="villagers-count"></span></div>
     <ul id="villagers"></ul>
   </div>
@@ -172,7 +177,11 @@ details li{margin:4px 0}
   <div class="section">
     <div class="stat"><span>Placements left</span><b id="left">–</b></div>
     <div class="stat"><span id="hazard-label">Fire blocks</span><b id="fire">–</b></div>
-    <div class="stat"><span id="alive-label">Villagers alive</span><b id="alive">–</b></div>
+    <div class="stat" id="alive-row"><span id="alive-label">Villagers alive</span><b id="alive">–</b></div>
+    <div id="burn-box" hidden>
+      <div class="stat"><span>World burned</span><b id="burned">–</b></div>
+      <div id="burnbar" role="progressbar" aria-label="World burned" aria-valuemin="0" aria-valuemax="100"><div></div></div>
+    </div>
     <div id="timer-box" hidden>
       <div class="stat"><span>Hold out</span><b id="timer-left">–</b></div>
       <div id="timer" role="progressbar" aria-label="Time held" aria-valuemin="0" aria-valuemax="100"><div></div></div>
@@ -236,6 +245,7 @@ const WOOD = 8;
 
 // Only these are offered in Play mode; the sandbox has the full set.
 const MATERIALS = {
+  fire:   {label: "Fire",   color: "rgb(228,45,2)"},
   sand:   {label: "Sand",   color: "rgb(238,208,162)"},
   water:  {label: "Water",  color: "rgba(37,125,255,.85)"},
   snow:   {label: "Snow",   color: "rgb(252,252,252)"},
@@ -247,7 +257,7 @@ let ready = false, level = null, levelBytes = null, watch = null;
 let phase = "loading";        // loading | planning | running | won | lost
 let placementsLeft = 0, selected = null, matButtons = {}, toastTimer = null;
 let lastScan = 0, scanning = false;
-let library = null, hazardTypes = new Set(), ticks = 0;
+let library = null, hazardTypes = new Set(), targetTypes = new Set(), ticks = 0;
 
 const call = (fn, ret, types, args) => ready ? Module.ccall(fn, ret, types, args) : null;
 
@@ -331,7 +341,7 @@ function readWorld() {
 
   const chunks = readInt();
   const burned = new Array(level.villagers.length).fill(0);
-  let fire = 0;
+  let fire = 0, remaining = 0;
   for (let c = 0; c < chunks; c++) {
     const key = readInt() + "," + readInt() + "," + readInt();
     const watched = watch.get(key);
@@ -339,13 +349,14 @@ function readWorld() {
       readInt();                        // colour, not needed
       const m = readInt();
       if (hazardTypes.has(m)) fire++;
+      if (targetTypes.has(m)) remaining++;
       if (watched !== undefined) {
         const v = watched.get(i);
         if (v !== undefined && m !== WOOD) burned[v]++;
       }
     }
   }
-  return {fire, burned};
+  return {fire, burned, remaining};
 }
 
 /* ------------------------------------------------------------- level flow */
@@ -399,11 +410,27 @@ function tickState() {
   if (now - lastScan < 600) return;
   scanning = true;
   try {
-    const {fire, burned} = readWorld();
+    const {fire, burned, remaining} = readWorld();
     lastScan = performance.now();
     $("fire").textContent = fire;
     $("fire").parentElement.classList.toggle("danger", fire > 0);
     const alive = showVillagers(burned);
+    if (level.win.type === "destroy") {
+      const done = 1 - remaining / level.win.total;
+      showBurned(done);
+      if (done >= level.win.target) {
+        finish(true, "The whole world went up in smoke: " + Math.floor(done * 100) +
+                     "% burned, using " + (level.placements - placementsLeft) + " of " +
+                     level.placements + " fires.");
+      } else if (fire === 0 && placementsLeft === 0) {
+        finish(false, "The fires went out with " + Math.floor(done * 100) + "% of the world burned, short of " +
+                      Math.round(level.win.target * 100) + "%. Fire cannot cross bare stone: look at which islands are linked.");
+      } else if (fire === 0) {
+        $("phase").textContent = "The fire is out. You still have " + placementsLeft +
+                                 (placementsLeft === 1 ? " fire" : " fires") + " to place.";
+      }
+      return;
+    }
     if (alive < level.villagers.length) {
       const lost = level.villagers.length - alive;
       finish(false, level.win.type === "survive"
@@ -548,6 +575,7 @@ function loadLevelWorld(message) {
   placementsLeft = level.placements;
   ticks = 0;
   updateTimer();
+  if (level.win.type === "destroy") showBurned(0);
   resetRecording();
   $("left").textContent = placementsLeft;
   $("fire").textContent = "–";
@@ -612,6 +640,13 @@ function countTick() {
     if (ticks % 10 === 0) updateTimer();
   }
   requestAnimationFrame(countTick);
+}
+
+function showBurned(done) {
+  const pct = Math.max(0, Math.min(100, Math.floor(done * 100)));
+  $("burned").textContent = pct + "%";
+  $("burnbar").firstElementChild.style.width = pct + "%";
+  $("burnbar").setAttribute("aria-valuenow", String(pct));
 }
 
 function updateTimer() {
@@ -803,6 +838,18 @@ var Module = {
       hazardTypes = new Set(level.hazard.types);
       $("kit-title").textContent = level.labels.kit;
       $("hazard-label").textContent = level.hazard.label;
+      targetTypes = new Set(level.win.types || []);
+      const destroy = level.win.type === "destroy";
+      $("villagers-box").hidden = destroy;
+      $("alive-row").hidden = destroy;
+      $("burn-box").hidden = !destroy;
+      if (destroy) $("burnbar").style.setProperty("--goal", Math.round(level.win.target * 100) + "%");
+      const GAMES = {save: "Save the Villagers", destroy: "Destroy the World"};
+      const other = library.levels.find(l => l.game !== level.game);
+      $("other-game").innerHTML = other
+        ? 'Other game: <a href="play.html?level=' + encodeURIComponent(other.id) + '" style="color:var(--accent)">' +
+          GAMES[other.game] + " &rarr;</a>"
+        : "";
       const single = level.villagers.length === 1;
       $("villagers-title").textContent = single ? "Village" : "Villagers";
       $("alive-label").textContent = single ? "Village standing" : "Villagers alive";

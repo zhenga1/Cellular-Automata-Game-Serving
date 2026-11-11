@@ -41,6 +41,13 @@ game is **Save the Villagers**:
   wooden villagers. The kit is stone, sand, water, snow and delete, with spawners and 20
   placements. You win when the fire has burned out with all four villagers intact.
 
+The second game is **Destroy the World**:
+
+- **Level 1, Ember Isle** (`ember-isle`): five islands of sand and grass, separated by stone gullies
+  that fire cannot cross, with wooden plank fuses linking them into two chains. You have two fires;
+  burn at least 97% of the world. One fire in each chain wins (about 98% burns); two in the same
+  chain leave the other chain standing (about 39% burns). Both were tested in the real sim.
+
 Each level starts paused so you can build first. Play mode reads the world back by calling the
 sim's save function and parsing the result a couple of times a second, since the WebAssembly
 build exposes no way to read cells directly.

@@ -1220,6 +1220,70 @@
      ]
     }
    ]
+  },
+  {
+   "id": "ember-isle",
+   "game": "destroy",
+   "name": "Ember Isle",
+   "subtitle": "Destroy the World \u00b7 Level 1",
+   "brief": "Five islands of sand and grass, separated by bare stone gullies that fire cannot cross. Wooden plank fuses link some of the islands together.",
+   "goal": "Burn at least 97% of the world. You have two fires.",
+   "hints": [
+    "Fire only travels through things that burn. Stone gullies stop it cold.",
+    "A fuse carries fire from one island to the next, so a lit island takes every island it is linked to with it.",
+    "Count the chains of linked islands. Each one needs its own fire."
+   ],
+   "materials": [
+    "fire"
+   ],
+   "spawners": false,
+   "placements": 2,
+   "max_brush": 3,
+   "brush": 3,
+   "hazard": {
+    "label": "Fire blocks",
+    "types": [
+     4,
+     14
+    ]
+   },
+   "win": {
+    "type": "destroy",
+    "target": 0.97,
+    "types": [
+     2,
+     6,
+     7,
+     8,
+     23
+    ],
+    "total": 10098
+   },
+   "labels": {
+    "kit": "Your fires",
+    "start": "Start the burn",
+    "running": "Burning. You can still place a fire if you have one left.",
+    "planning": "Paused. Place your fires, then start the burn.",
+    "won": "The world is ash",
+    "lost": "Some of the world survived"
+   },
+   "camera": {
+    "eye": [
+     32,
+     92,
+     -26
+    ],
+    "look": [
+     32,
+     0,
+     30
+    ]
+   },
+   "size": 64,
+   "file": "ember-isle.demo.gz",
+   "thumb": "ember-isle.png",
+   "hash": "b47a99683923",
+   "villagers": []
   }
  ]
 }
