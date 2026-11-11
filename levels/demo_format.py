@@ -11,14 +11,15 @@ World cell (X,Y,Z) is in chunk (X>>5, Y>>5, Z>>5) at local (X&31, Y&31, Z&31).
 import gzip, io
 
 EMPTY = 1
-STONE, SAND, WATER, FIRE, SNOW, GRASS, WOOD, SMOKE, TURF = 0, 2, 3, 4, 5, 6, 8, 10, 23
-FIRE_SPAWNER, WATER_SPAWNER = 13, 12
+STONE, SAND, WATER, FIRE, SNOW, GRASS, WOOD, SMOKE, LAVA, TURF = 0, 2, 3, 4, 5, 6, 8, 10, 11, 23
+# Spawners, in the order of the CELLS macro in src/cell_types.h
+WATER_SPAWNER, FIRE_SPAWNER, LAVA_SPAWNER = 13, 14, 20
 
 COLOR = {
     STONE: (135, 140, 140), SAND: (238, 208, 162), WATER: (37, 125, 255),
     FIRE: (228, 45, 2), SNOW: (252, 252, 252), GRASS: (30, 130, 12),
-    WOOD: (80, 60, 40), SMOKE: (70, 70, 70), TURF: (70, 150, 60),
-    FIRE_SPAWNER: (165, 70, 228), WATER_SPAWNER: (165, 70, 228),
+    WOOD: (80, 60, 40), SMOKE: (70, 70, 70), LAVA: (236, 120, 24), TURF: (70, 150, 60),
+    FIRE_SPAWNER: (165, 70, 228), WATER_SPAWNER: (165, 70, 228), LAVA_SPAWNER: (165, 70, 228),
 }
 
 def pack(rgb):

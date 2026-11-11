@@ -6,7 +6,7 @@ Everything it writes lands in this folder, which play.html reads.
 import hashlib, json, os, random, struct, zlib
 
 from demo_format import (World, EMPTY, STONE, SAND, WATER, FIRE, SNOW, GRASS,
-                         WOOD, TURF, pack, unpack)
+                         WOOD, TURF, LAVA, LAVA_SPAWNER, FIRE_SPAWNER, pack, unpack)
 
 W = H = 96          # the world is 96x96 cells across, y 0..31
 TOP = 31
@@ -124,6 +124,7 @@ def build_level1():
     where = [('by the pond', 58, 16), ('on the lawn', 36, 12),
              ('near the huts', 30, 17), ('at the footbridge', 14, 15)]
     villagers = [{'name': name,
+                  'label': 'The villager ' + name,
                   'color': 'rgb(%d,%d,%d)' % SHIRTS[i],
                   'cells': villager(w, x, z, SHIRTS[i])}
                  for i, (name, x, z) in enumerate(where)]
@@ -144,10 +145,146 @@ def build_level1():
     return w, villagers
 
 
+# ------------------------------------------------------------------ Lava Fork
+#
+# One lava vent at the top of a hill, a gutter running down it, and a fork:
+#   route A - a 3x3 archway, then on down the hill into the village
+#   route B - a gap in the gutter's east wall, flush with its floor, then a
+#             stepped spillway into an empty pit
+# The player has one 3x3x3 stone block. Plugging the archway makes the lava
+# back up two layers deep, which is exactly when it spills through route B.
+#
+# Shaped by testing in the real sim (headless Chrome, 60 s per case):
+#   - lava only moves straight down or diagonally down, never sideways, so
+#     every route is a staircase and the spillway steps down one per cell
+#   - lava keeps planting fire spawners in the air beside it, and those burn
+#     away whatever is under them, lava included, so a single pool of lava
+#     never gets far: the source is a 3x3 vent of spawners instead
+#   - the gutter is 5 wide so one block can never seal the gutter itself;
+#     only the 3-wide archway takes exactly one block
+#   - the whole hill drains toward the village, so the pit is the only safe
+#     place for the lava to go
+LF_W = 64                      # 64 x 64 cells, y 0..31
+LF_X0, LF_X1 = 29, 33          # gutter, 5 wide
+LF_D0, LF_D1 = 30, 32          # route A's opening, 3 wide
+LF_FOOT = 22                   # the hill rises north of z = 22
+LF_DOOR = 29                   # the archway
+LF_B = (31, 33)                # route B spillway
+LF_TOPZ = 44                   # the vent end of the gutter
+LF_PIT_X, LF_PIT_Z = (37, 56), (26, 44)
+LF_WALL = 3
+
+HILL, HILL_TOP = (112, 104, 92), (128, 118, 100)
+GUTTER, ARCH = (78, 74, 72), (60, 56, 56)
+PLAIN = (110, 132, 84)         # stone coloured as grass: looks like a field, cannot burn
+PIT_C = (52, 48, 46)
+VENT = (165, 70, 228)
+
+
+def lf_ground(z):
+    """Hill surface height: 1 on the plain, rising one per cell going north."""
+    return 1 if z <= LF_FOOT else min(24, 1 + z - LF_FOOT)
+
+
+def build_lava_fork():
+    w = World()
+    for cx in range(2):
+        for cz in range(2):
+            w.set(cx * 32, 0, cz * 32, EMPTY)
+    g = lf_ground
+    w.fill(0, LF_W - 1, 0, 0, 0, LF_W - 1, STONE, PIT_C)
+    for z in range(LF_W):
+        w.fill(0, LF_W - 1, 1, g(z) - 1, z, z, STONE, HILL)
+        w.fill(0, LF_W - 1, g(z), g(z), z, z, STONE, PLAIN if z <= LF_FOOT else HILL_TOP)
+
+    # The gutter: walls on both sides from the vent down to the plain
+    for z in range(LF_FOOT + 1, LF_TOPZ + 1):
+        for x in (LF_X0 - 1, LF_X1 + 1):
+            w.fill(x, x, g(z) + 1, g(z) + LF_WALL, z, z, STONE, GUTTER)
+    w.fill(LF_X0 - 1, LF_X1 + 1, g(LF_TOPZ) + 1, g(LF_TOPZ) + LF_WALL,
+           LF_TOPZ + 1, LF_TOPZ + 1, STONE, GUTTER)
+
+    # The one lava source: a 3x3 vent of spawners over the top of the gutter
+    for z in (LF_TOPZ - 2, LF_TOPZ - 1, LF_TOPZ):
+        w.fill(LF_D0, LF_D1, g(z) + 3, g(z) + 3, z, z, LAVA_SPAWNER, VENT)
+
+    # Route A: an archway with a 3 wide, 3 tall opening
+    top = g(LF_DOOR)
+    w.fill(LF_X0 - 1, LF_X1 + 1, top + 1, top + LF_WALL + 3, LF_DOOR, LF_DOOR, STONE, ARCH)
+    w.fill(LF_D0, LF_D1, top + 1, top + 3, LF_DOOR, LF_DOOR, EMPTY)
+
+    # Route B: the east wall opened flush with the gutter floor, then a
+    # spillway stepping down one cell per cell into the pit
+    bz0, bz1 = LF_B
+    px0, px1 = LF_PIT_X
+    pz0, pz1 = LF_PIT_Z
+    for z in range(bz0, bz1 + 1):
+        for i, x in enumerate(range(LF_X1 + 1, px0)):
+            f = g(z) - i
+            w.fill(x, x, f + 1, 31, z, z, EMPTY)
+            w.fill(x, x, f, f, z, z, STONE, HILL_TOP)
+    for x in range(LF_X1 + 1, px0):
+        w.fill(x, x, g(bz0 - 1) + 1, g(bz0 - 1) + LF_WALL + 1, bz0 - 1, bz0 - 1, STONE, GUTTER)
+        w.fill(x, x, g(bz1 + 1) + 1, g(bz1 + 1) + LF_WALL, bz1 + 1, bz1 + 1, STONE, GUTTER)
+    # The pit, dug down to y = 1, with a wall along its downhill rim
+    w.fill(px0, px1, 1, 31, pz0, pz1, EMPTY)
+    w.fill(px0 - 1, px1 + 1, 1, g(pz0) + 4, pz0 - 1, pz0 - 1, STONE, GUTTER)
+
+    # The village: three huts on the plain, right below the end of route A
+    cells = []
+    for hx, hz in ((24, 13), (31, 9), (37, 14)):
+        for dx in range(4):
+            for dz in range(4):
+                for dy in range(4):
+                    if dx in (0, 3) or dz in (0, 3) or dy == 3:
+                        w.set(hx + dx, 2 + dy, hz + dz, WOOD, ROOF if dy == 3 else WALL)
+                        cells.append([hx + dx, 2 + dy, hz + dz])
+                    if dx == 1 and dz == 0 and dy < 2:          # doorway
+                        w.set(hx + dx, 2 + dy, hz + dz, EMPTY)
+                        cells.remove([hx + dx, 2 + dy, hz + dz])
+    village = [{'name': 'village', 'label': 'The village', 'color': 'rgb(150,70,50)', 'cells': cells}]
+    return w, village
+
+
 LEVELS = [{
-    'id': 'level1',
-    'name': 'Save the Villagers',
-    'subtitle': 'Level 1 - Firebreak',
+    'id': 'lava-fork',
+    'game': 'save',
+    'name': 'Lava Fork',
+    'subtitle': 'Save the Villagers · Level 1',
+    'brief': 'Lava is pouring out of the vent at the top of the hill, and the gutter carries it '
+             'straight down to the village. Halfway down, the gutter forks.',
+    'goal': 'You have one block of stone. Put it where it sends the lava away from the village, '
+            'then hold out until the timer runs down.',
+    'hints': [
+        'Lava cannot climb, and it only flows downhill. Blocked lava piles up until it finds '
+        'another way down.',
+        'There are two ways out of the gutter: the stone archway, which leads to the village, '
+        'and the gap in the east wall, which leads to the empty pit.',
+        'Block the opening that leads to the village, and the lava has only one place left to go.',
+    ],
+    'materials': ['stone'],
+    'spawners': False,
+    'placements': 1,
+    'max_brush': 3,
+    'brush': 3,
+    'hazard': {'label': 'Lava blocks', 'types': [LAVA]},
+    'win': {'type': 'survive', 'ticks': 900},
+    'labels': {
+        'kit': 'Your stone',
+        'start': 'Release the lava',
+        'running': 'The lava is flowing. Your block is placed.',
+        'planning': 'Paused. Aim at the opening you want to block, then press F.',
+        'won': 'The village is safe',
+        'lost': 'The lava reached the village',
+    },
+    'camera': {'eye': [8, 52, -6], 'look': [40, 8, 30]},
+    'size': LF_W,
+    'build': build_lava_fork,
+}, {
+    'id': 'wildfire',
+    'game': 'save',
+    'name': 'Wildfire',
+    'subtitle': 'Save the Villagers · Level 2',
     'brief': 'A wildfire is sweeping down the dry meadow towards the village. '
              'The four villagers cannot move, and everything they are made of burns.',
     'goal': 'Keep all four villagers alive until the fire burns itself out.',
@@ -163,7 +300,19 @@ LEVELS = [{
     'materials': ['stone', 'sand', 'water', 'snow', 'delete'],
     'placements': 20,
     'max_brush': 5,
+    'brush': 2,
+    'hazard': {'label': 'Fire blocks', 'types': [FIRE, FIRE_SPAWNER]},
+    'win': {'type': 'fire_out'},
+    'labels': {
+        'kit': 'Firefighting kit',
+        'start': 'Start the fire',
+        'running': 'The fire is spreading. You can still place blocks.',
+        'planning': 'Paused. Build your defences, then start the fire.',
+        'won': 'The village is safe',
+        'lost': 'The village burned',
+    },
     'camera': {'eye': [-20, 80, -64], 'look': [50, 2, 48]},
+    'size': W,
     'build': build_level1,
 }]
 
@@ -187,13 +336,14 @@ def png(path, pixels, width, height):
     open(path, 'wb').write(out)
 
 
-def map_thumb(w, path, scale=4):
+def map_thumb(w, path, size=W, scale=4):
     """Top-down map of a level: the colour of the highest block in each column."""
     SKY = (24, 26, 32)
+    scale = max(scale, 384 // size)     # every map comes out about 384 px square
     px = []
-    for z in range(H - 1, -1, -1):      # the village (z = 0) ends up at the bottom
+    for z in range(size - 1, -1, -1):   # the village (z = 0) ends up at the bottom
         row = []
-        for x in range(W):
+        for x in range(size):
             col = SKY
             for y in range(TOP, -1, -1):
                 if w.get(x, y, z) != EMPTY:
@@ -204,7 +354,7 @@ def map_thumb(w, path, scale=4):
             row.append(col)
         for _ in range(scale):
             px.extend(c for c in row for _ in range(scale))
-    png(path, px, W * scale, H * scale)
+    png(path, px, size * scale, size * scale)
 
 
 def main():
@@ -213,7 +363,7 @@ def main():
     for spec in LEVELS:
         w, villagers = spec['build']()
         w.save(os.path.join(here, spec['id'] + '.demo.gz'))
-        map_thumb(w, os.path.join(here, spec['id'] + '.png'))
+        map_thumb(w, os.path.join(here, spec['id'] + '.png'), spec['size'])
         entry = {k: v for k, v in spec.items() if k != 'build'}
         entry['file'] = spec['id'] + '.demo.gz'
         entry['thumb'] = spec['id'] + '.png'
@@ -225,8 +375,8 @@ def main():
         entry['villagers'] = villagers
         out.append(entry)
         n = w.counts()
-        print('%s: %d chunks, turf %d, wood %d, fire %d, water %d, villager cells %d'
-              % (spec['id'], len(w.chunks), n[TURF], n[WOOD], n[FIRE], n[WATER],
+        print('%s: %d chunks, turf %d, wood %d, fire %d, water %d, lava spawners %d, villager cells %d'
+              % (spec['id'], len(w.chunks), n[TURF], n[WOOD], n[FIRE], n[WATER], n[LAVA_SPAWNER],
                  sum(len(v['cells']) for v in villagers)))
     with open(os.path.join(here, 'levels.json'), 'w') as f:
         json.dump({'levels': out}, f, indent=1)

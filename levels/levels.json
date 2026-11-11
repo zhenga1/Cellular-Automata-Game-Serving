@@ -1,9 +1,823 @@
 {
  "levels": [
   {
-   "id": "level1",
-   "name": "Save the Villagers",
-   "subtitle": "Level 1 - Firebreak",
+   "id": "lava-fork",
+   "game": "save",
+   "name": "Lava Fork",
+   "subtitle": "Save the Villagers \u00b7 Level 1",
+   "brief": "Lava is pouring out of the vent at the top of the hill, and the gutter carries it straight down to the village. Halfway down, the gutter forks.",
+   "goal": "You have one block of stone. Put it where it sends the lava away from the village, then hold out until the timer runs down.",
+   "hints": [
+    "Lava cannot climb, and it only flows downhill. Blocked lava piles up until it finds another way down.",
+    "There are two ways out of the gutter: the stone archway, which leads to the village, and the gap in the east wall, which leads to the empty pit.",
+    "Block the opening that leads to the village, and the lava has only one place left to go."
+   ],
+   "materials": [
+    "stone"
+   ],
+   "spawners": false,
+   "placements": 1,
+   "max_brush": 3,
+   "brush": 3,
+   "hazard": {
+    "label": "Lava blocks",
+    "types": [
+     11
+    ]
+   },
+   "win": {
+    "type": "survive",
+    "ticks": 900
+   },
+   "labels": {
+    "kit": "Your stone",
+    "start": "Release the lava",
+    "running": "The lava is flowing. Your block is placed.",
+    "planning": "Paused. Aim at the opening you want to block, then press F.",
+    "won": "The village is safe",
+    "lost": "The lava reached the village"
+   },
+   "camera": {
+    "eye": [
+     8,
+     52,
+     -6
+    ],
+    "look": [
+     40,
+     8,
+     30
+    ]
+   },
+   "size": 64,
+   "file": "lava-fork.demo.gz",
+   "thumb": "lava-fork.png",
+   "hash": "e921cb6661ec",
+   "villagers": [
+    {
+     "name": "village",
+     "label": "The village",
+     "color": "rgb(150,70,50)",
+     "cells": [
+      [
+       24,
+       2,
+       13
+      ],
+      [
+       24,
+       3,
+       13
+      ],
+      [
+       24,
+       4,
+       13
+      ],
+      [
+       24,
+       5,
+       13
+      ],
+      [
+       24,
+       2,
+       14
+      ],
+      [
+       24,
+       3,
+       14
+      ],
+      [
+       24,
+       4,
+       14
+      ],
+      [
+       24,
+       5,
+       14
+      ],
+      [
+       24,
+       2,
+       15
+      ],
+      [
+       24,
+       3,
+       15
+      ],
+      [
+       24,
+       4,
+       15
+      ],
+      [
+       24,
+       5,
+       15
+      ],
+      [
+       24,
+       2,
+       16
+      ],
+      [
+       24,
+       3,
+       16
+      ],
+      [
+       24,
+       4,
+       16
+      ],
+      [
+       24,
+       5,
+       16
+      ],
+      [
+       25,
+       4,
+       13
+      ],
+      [
+       25,
+       5,
+       13
+      ],
+      [
+       25,
+       5,
+       14
+      ],
+      [
+       25,
+       5,
+       15
+      ],
+      [
+       25,
+       2,
+       16
+      ],
+      [
+       25,
+       3,
+       16
+      ],
+      [
+       25,
+       4,
+       16
+      ],
+      [
+       25,
+       5,
+       16
+      ],
+      [
+       26,
+       2,
+       13
+      ],
+      [
+       26,
+       3,
+       13
+      ],
+      [
+       26,
+       4,
+       13
+      ],
+      [
+       26,
+       5,
+       13
+      ],
+      [
+       26,
+       5,
+       14
+      ],
+      [
+       26,
+       5,
+       15
+      ],
+      [
+       26,
+       2,
+       16
+      ],
+      [
+       26,
+       3,
+       16
+      ],
+      [
+       26,
+       4,
+       16
+      ],
+      [
+       26,
+       5,
+       16
+      ],
+      [
+       27,
+       2,
+       13
+      ],
+      [
+       27,
+       3,
+       13
+      ],
+      [
+       27,
+       4,
+       13
+      ],
+      [
+       27,
+       5,
+       13
+      ],
+      [
+       27,
+       2,
+       14
+      ],
+      [
+       27,
+       3,
+       14
+      ],
+      [
+       27,
+       4,
+       14
+      ],
+      [
+       27,
+       5,
+       14
+      ],
+      [
+       27,
+       2,
+       15
+      ],
+      [
+       27,
+       3,
+       15
+      ],
+      [
+       27,
+       4,
+       15
+      ],
+      [
+       27,
+       5,
+       15
+      ],
+      [
+       27,
+       2,
+       16
+      ],
+      [
+       27,
+       3,
+       16
+      ],
+      [
+       27,
+       4,
+       16
+      ],
+      [
+       27,
+       5,
+       16
+      ],
+      [
+       31,
+       2,
+       9
+      ],
+      [
+       31,
+       3,
+       9
+      ],
+      [
+       31,
+       4,
+       9
+      ],
+      [
+       31,
+       5,
+       9
+      ],
+      [
+       31,
+       2,
+       10
+      ],
+      [
+       31,
+       3,
+       10
+      ],
+      [
+       31,
+       4,
+       10
+      ],
+      [
+       31,
+       5,
+       10
+      ],
+      [
+       31,
+       2,
+       11
+      ],
+      [
+       31,
+       3,
+       11
+      ],
+      [
+       31,
+       4,
+       11
+      ],
+      [
+       31,
+       5,
+       11
+      ],
+      [
+       31,
+       2,
+       12
+      ],
+      [
+       31,
+       3,
+       12
+      ],
+      [
+       31,
+       4,
+       12
+      ],
+      [
+       31,
+       5,
+       12
+      ],
+      [
+       32,
+       4,
+       9
+      ],
+      [
+       32,
+       5,
+       9
+      ],
+      [
+       32,
+       5,
+       10
+      ],
+      [
+       32,
+       5,
+       11
+      ],
+      [
+       32,
+       2,
+       12
+      ],
+      [
+       32,
+       3,
+       12
+      ],
+      [
+       32,
+       4,
+       12
+      ],
+      [
+       32,
+       5,
+       12
+      ],
+      [
+       33,
+       2,
+       9
+      ],
+      [
+       33,
+       3,
+       9
+      ],
+      [
+       33,
+       4,
+       9
+      ],
+      [
+       33,
+       5,
+       9
+      ],
+      [
+       33,
+       5,
+       10
+      ],
+      [
+       33,
+       5,
+       11
+      ],
+      [
+       33,
+       2,
+       12
+      ],
+      [
+       33,
+       3,
+       12
+      ],
+      [
+       33,
+       4,
+       12
+      ],
+      [
+       33,
+       5,
+       12
+      ],
+      [
+       34,
+       2,
+       9
+      ],
+      [
+       34,
+       3,
+       9
+      ],
+      [
+       34,
+       4,
+       9
+      ],
+      [
+       34,
+       5,
+       9
+      ],
+      [
+       34,
+       2,
+       10
+      ],
+      [
+       34,
+       3,
+       10
+      ],
+      [
+       34,
+       4,
+       10
+      ],
+      [
+       34,
+       5,
+       10
+      ],
+      [
+       34,
+       2,
+       11
+      ],
+      [
+       34,
+       3,
+       11
+      ],
+      [
+       34,
+       4,
+       11
+      ],
+      [
+       34,
+       5,
+       11
+      ],
+      [
+       34,
+       2,
+       12
+      ],
+      [
+       34,
+       3,
+       12
+      ],
+      [
+       34,
+       4,
+       12
+      ],
+      [
+       34,
+       5,
+       12
+      ],
+      [
+       37,
+       2,
+       14
+      ],
+      [
+       37,
+       3,
+       14
+      ],
+      [
+       37,
+       4,
+       14
+      ],
+      [
+       37,
+       5,
+       14
+      ],
+      [
+       37,
+       2,
+       15
+      ],
+      [
+       37,
+       3,
+       15
+      ],
+      [
+       37,
+       4,
+       15
+      ],
+      [
+       37,
+       5,
+       15
+      ],
+      [
+       37,
+       2,
+       16
+      ],
+      [
+       37,
+       3,
+       16
+      ],
+      [
+       37,
+       4,
+       16
+      ],
+      [
+       37,
+       5,
+       16
+      ],
+      [
+       37,
+       2,
+       17
+      ],
+      [
+       37,
+       3,
+       17
+      ],
+      [
+       37,
+       4,
+       17
+      ],
+      [
+       37,
+       5,
+       17
+      ],
+      [
+       38,
+       4,
+       14
+      ],
+      [
+       38,
+       5,
+       14
+      ],
+      [
+       38,
+       5,
+       15
+      ],
+      [
+       38,
+       5,
+       16
+      ],
+      [
+       38,
+       2,
+       17
+      ],
+      [
+       38,
+       3,
+       17
+      ],
+      [
+       38,
+       4,
+       17
+      ],
+      [
+       38,
+       5,
+       17
+      ],
+      [
+       39,
+       2,
+       14
+      ],
+      [
+       39,
+       3,
+       14
+      ],
+      [
+       39,
+       4,
+       14
+      ],
+      [
+       39,
+       5,
+       14
+      ],
+      [
+       39,
+       5,
+       15
+      ],
+      [
+       39,
+       5,
+       16
+      ],
+      [
+       39,
+       2,
+       17
+      ],
+      [
+       39,
+       3,
+       17
+      ],
+      [
+       39,
+       4,
+       17
+      ],
+      [
+       39,
+       5,
+       17
+      ],
+      [
+       40,
+       2,
+       14
+      ],
+      [
+       40,
+       3,
+       14
+      ],
+      [
+       40,
+       4,
+       14
+      ],
+      [
+       40,
+       5,
+       14
+      ],
+      [
+       40,
+       2,
+       15
+      ],
+      [
+       40,
+       3,
+       15
+      ],
+      [
+       40,
+       4,
+       15
+      ],
+      [
+       40,
+       5,
+       15
+      ],
+      [
+       40,
+       2,
+       16
+      ],
+      [
+       40,
+       3,
+       16
+      ],
+      [
+       40,
+       4,
+       16
+      ],
+      [
+       40,
+       5,
+       16
+      ],
+      [
+       40,
+       2,
+       17
+      ],
+      [
+       40,
+       3,
+       17
+      ],
+      [
+       40,
+       4,
+       17
+      ],
+      [
+       40,
+       5,
+       17
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "id": "wildfire",
+   "game": "save",
+   "name": "Wildfire",
+   "subtitle": "Save the Villagers \u00b7 Level 2",
    "brief": "A wildfire is sweeping down the dry meadow towards the village. The four villagers cannot move, and everything they are made of burns.",
    "goal": "Keep all four villagers alive until the fire burns itself out.",
    "hints": [
@@ -21,6 +835,25 @@
    ],
    "placements": 20,
    "max_brush": 5,
+   "brush": 2,
+   "hazard": {
+    "label": "Fire blocks",
+    "types": [
+     4,
+     14
+    ]
+   },
+   "win": {
+    "type": "fire_out"
+   },
+   "labels": {
+    "kit": "Firefighting kit",
+    "start": "Start the fire",
+    "running": "The fire is spreading. You can still place blocks.",
+    "planning": "Paused. Build your defences, then start the fire.",
+    "won": "The village is safe",
+    "lost": "The village burned"
+   },
    "camera": {
     "eye": [
      -20,
@@ -33,12 +866,14 @@
      48
     ]
    },
-   "file": "level1.demo.gz",
-   "thumb": "level1.png",
-   "hash": "b983ff91b7d3",
+   "size": 96,
+   "file": "wildfire.demo.gz",
+   "thumb": "wildfire.png",
+   "hash": "9b155e6c894c",
    "villagers": [
     {
      "name": "by the pond",
+     "label": "The villager by the pond",
      "color": "rgb(196,62,58)",
      "cells": [
       [
@@ -125,6 +960,7 @@
     },
     {
      "name": "on the lawn",
+     "label": "The villager on the lawn",
      "color": "rgb(62,94,196)",
      "cells": [
       [
@@ -211,6 +1047,7 @@
     },
     {
      "name": "near the huts",
+     "label": "The villager near the huts",
      "color": "rgb(214,178,62)",
      "cells": [
       [
@@ -297,6 +1134,7 @@
     },
     {
      "name": "at the footbridge",
+     "label": "The villager at the footbridge",
      "color": "rgb(146,84,174)",
      "cells": [
       [
