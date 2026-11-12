@@ -48,7 +48,7 @@ The second game is **Destroy the World**:
   burn at least 97% of the world. One fire in each chain wins (about 98% burns); two in the same
   chain leave the other chain standing (about 39% burns). Both were tested in the real sim.
 
-A third game, **Build a Path**, has one **draft** level:
+A third game, **Build a Path**, has one level:
 
 - **Aqueduct** (`aqueduct`): a spring on one plateau, the village's empty pool on the other, and an
   old aqueduct across the chasm between them whose deck is missing. Lay the deck with stone (3

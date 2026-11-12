@@ -334,9 +334,9 @@ def build_ember_isle():
     return w, []
 
 
-# ------------------------------------------------------------ Aqueduct (draft)
+# ------------------------------------------------------------ Aqueduct
 #
-# Build a Path, draft level. A spring on the north plateau feeds a walled
+# Build a Path, level 1. A spring on the north plateau feeds a walled
 # channel that stops at a bottomless chasm; on the far side another channel
 # runs down to the village's empty pool. Water that falls into the chasm is
 # gone for good (World::update wipes chunk layer y = -2), so the player has to
@@ -527,9 +527,8 @@ LEVELS = [{
 }, {
     'id': 'aqueduct',
     'game': 'build',
-    'draft': True,
     'name': 'Aqueduct',
-    'subtitle': 'Build a Path · Draft level',
+    'subtitle': 'Build a Path · Level 1',
     'brief': 'The village has run dry. A spring on the far plateau still flows, and the old aqueduct '
              'still spans the chasm, but its deck has fallen away.',
     'goal': 'Lay the missing deck so the water reaches the village pool. Fill it with 300 blocks of water.',

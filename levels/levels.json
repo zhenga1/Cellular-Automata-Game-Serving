@@ -1297,9 +1297,8 @@
   {
    "id": "aqueduct",
    "game": "build",
-   "draft": true,
    "name": "Aqueduct",
-   "subtitle": "Build a Path \u00b7 Draft level",
+   "subtitle": "Build a Path \u00b7 Level 1",
    "brief": "The village has run dry. A spring on the far plateau still flows, and the old aqueduct still spans the chasm, but its deck has fallen away.",
    "goal": "Lay the missing deck so the water reaches the village pool. Fill it with 300 blocks of water.",
    "hints": [
