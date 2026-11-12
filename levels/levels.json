@@ -25,9 +25,9 @@
      11
     ]
    },
-   "win": {
-    "type": "survive",
-    "ticks": 900
+   "messages": {
+    "won": "The lava ran into the pit and the village never caught.",
+    "lost": "The lava found its way down to the village. Think about where it would go once one opening is blocked, then try again."
    },
    "labels": {
     "kit": "Your stone",
@@ -811,7 +811,11 @@
       ]
      ]
     }
-   ]
+   ],
+   "win": {
+    "type": "survive",
+    "ticks": 900
+   }
   },
   {
    "id": "wildfire",
@@ -819,7 +823,7 @@
    "name": "Wildfire",
    "subtitle": "Save the Villagers \u00b7 Level 2",
    "brief": "A wildfire is sweeping down the dry meadow towards the village. The four villagers cannot move, and everything they are made of burns.",
-   "goal": "Keep all four villagers alive until the fire burns itself out.",
+   "goal": "Keep all four villagers alive until the timer runs down.",
    "hints": [
     "Fire spreads to every burnable block touching it, diagonals included, so a gap in the fuel stops it. Stone never burns.",
     "Only two things cross the ravine: the grass land bridge and the wooden footbridge. Everything else is bare rock.",
@@ -843,8 +847,9 @@
      14
     ]
    },
-   "win": {
-    "type": "fire_out"
+   "messages": {
+    "won": "The fire never reached the village.",
+    "lost": "Cut every route the fire can burn along, then try again."
    },
    "labels": {
     "kit": "Firefighting kit",
@@ -1219,7 +1224,11 @@
       ]
      ]
     }
-   ]
+   ],
+   "win": {
+    "type": "survive",
+    "ticks": 900
+   }
   },
   {
    "id": "ember-isle",

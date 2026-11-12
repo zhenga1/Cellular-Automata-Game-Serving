@@ -403,6 +403,20 @@ def build_aqueduct(bridge=False):
     return w, []
 
 
+# Save the Villagers levels are won by holding out: keep every villager alive
+# until the timer runs down. A level gets this unless it sets its own 'win'.
+# (Play also ends a level early, as a win, if the hazard dies out completely.)
+SAVE_HOLDOUT_TICKS = 900
+
+
+def default_win(spec):
+    if 'win' in spec:
+        return spec['win']
+    if spec['game'] == 'save':
+        return {'type': 'survive', 'ticks': SAVE_HOLDOUT_TICKS}
+    raise ValueError(spec['id'] + ': no win rule')
+
+
 LEVELS = [{
     'id': 'lava-fork',
     'game': 'save',
@@ -425,7 +439,11 @@ LEVELS = [{
     'max_brush': 3,
     'brush': 3,
     'hazard': {'label': 'Lava blocks', 'types': [LAVA]},
-    'win': {'type': 'survive', 'ticks': 900},
+    'messages': {
+        'won': 'The lava ran into the pit and the village never caught.',
+        'lost': 'The lava found its way down to the village. Think about where it would go '
+                'once one opening is blocked, then try again.',
+    },
     'labels': {
         'kit': 'Your stone',
         'start': 'Release the lava',
@@ -444,7 +462,7 @@ LEVELS = [{
     'subtitle': 'Save the Villagers · Level 2',
     'brief': 'A wildfire is sweeping down the dry meadow towards the village. '
              'The four villagers cannot move, and everything they are made of burns.',
-    'goal': 'Keep all four villagers alive until the fire burns itself out.',
+    'goal': 'Keep all four villagers alive until the timer runs down.',
     'hints': [
         'Fire spreads to every burnable block touching it, diagonals included, '
         'so a gap in the fuel stops it. Stone never burns.',
@@ -459,7 +477,10 @@ LEVELS = [{
     'max_brush': 5,
     'brush': 2,
     'hazard': {'label': 'Fire blocks', 'types': [FIRE, FIRE_SPAWNER]},
-    'win': {'type': 'fire_out'},
+    'messages': {
+        'won': 'The fire never reached the village.',
+        'lost': 'Cut every route the fire can burn along, then try again.',
+    },
     'labels': {
         'kit': 'Firefighting kit',
         'start': 'Start the fire',
@@ -597,10 +618,11 @@ def main():
         entry['hash'] = hashlib.sha256(
             open(os.path.join(here, entry['file']), 'rb').read()).hexdigest()[:12]
         entry['villagers'] = villagers
-        if spec['win']['type'] == 'destroy':
+        entry['win'] = default_win(spec)
+        if entry['win']['type'] == 'destroy':
             # how much there is to burn at the start, so Play can show % destroyed
             n = w.counts()
-            entry['win'] = dict(spec['win'], total=sum(n[t] for t in spec['win']['types']))
+            entry['win'] = dict(entry['win'], total=sum(n[t] for t in spec['win']['types']))
         out.append(entry)
         n = w.counts()
         print('%s: %d chunks, turf %d, wood %d, fire %d, water %d, lava spawners %d, villager cells %d'

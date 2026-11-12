@@ -258,6 +258,7 @@ let phase = "loading";        // loading | planning | running | won | lost
 let placementsLeft = 0, selected = null, matButtons = {}, toastTimer = null;
 let lastScan = 0, scanning = false;
 let library = null, hazardTypes = new Set(), targetTypes = new Set(), fillBox = null, ticks = 0;
+let seenHazard = false;   // the hazard has appeared at least once this run
 
 const call = (fn, ret, types, args) => ready ? Module.ccall(fn, ret, types, args) : null;
 
@@ -449,15 +450,18 @@ function tickState() {
     }
     if (alive < level.villagers.length) {
       const lost = level.villagers.length - alive;
-      finish(false, level.win.type === "survive"
-        ? "The lava found its way down to the village. Think about where it would go once one opening is blocked, then try again."
-        : lost === 1
-        ? "One villager was caught by the fire. Cut every route the fire can burn along, then try again."
-        : lost + " villagers were caught by the fire. Cut every route the fire can burn along, then try again.");
+      const msg = (level.messages && level.messages.lost) || "Try again.";
+      finish(false, level.villagers.length === 1 ? msg
+        : (lost === 1 ? "One villager was lost. " : lost + " villagers were lost. ") + msg);
     } else if (level.win.type === "survive") {
+      if (fire > 0) seenHazard = true;
       if (ticks >= level.win.ticks) {
-        finish(true, "The lava ran into the pit and the village never caught. You held out for all " +
-                     level.win.ticks + " ticks.");
+        finish(true, ((level.messages && level.messages.won) || "Everyone made it.") +
+                     " You held out for all " + level.win.ticks + " ticks.");
+      } else if (seenHazard && fire <= COMPLETE_AT) {
+        // the hazard has (nearly) died out before the timer: no need to wait
+        $("complete-box").hidden = false;
+        if (fire === 0) completeLevel();
       }
     } else if (level.win.type === "fire_out" && fire <= COMPLETE_AT) {
       // A few stray fire cells can flicker for a while after the fire front has
@@ -478,8 +482,10 @@ function completeLevel() {
   if (phase !== "running") return;
   const alive = level.villagers.length - document.querySelectorAll("#villagers li.gone").length;
   if (alive < level.villagers.length) return;     // a loss is reported by tickState
-  finish(true, "The fire burned itself out and all " + level.villagers.length +
-               " villagers are still standing. You used " +
+  const what = level.hazard.label.replace(/ blocks?$/i, "").toLowerCase();
+  const who = level.villagers.length === 1 ? "the village is still standing"
+            : "all " + level.villagers.length + " villagers are still standing";
+  finish(true, "The " + what + " died out early and " + who + ". You used " +
                (level.placements - placementsLeft) + " of " + level.placements + " placements.");
 }
 
@@ -590,6 +596,7 @@ function loadLevelWorld(message) {
   call("ca_set_paused", null, ["number"], [1]);
   placementsLeft = level.placements;
   ticks = 0;
+  seenHazard = false;
   updateTimer();
   if (level.win.type === "destroy" || level.win.type === "fill") showBurned(0);
   resetRecording();
