@@ -220,15 +220,35 @@
   .loop-note { margin-top: 14px; font: 12px var(--mono); color: var(--muted); }
   .loop-note::before { content: "\21BA  "; color: var(--accent); }
 
-  /* Community: a placeholder until sharing exists */
+  /* Community: sharing isn't built yet, so for now it collects sign-ups */
   .community {
     margin-top: 28px; padding: 32px; border-radius: var(--radius);
     border: 1px dashed color-mix(in srgb, var(--accent) 45%, transparent);
     background: color-mix(in srgb, var(--accent) 6%, transparent);
-    display: grid; grid-template-columns: 1fr auto; gap: 16px; align-items: center;
+    display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr); gap: 28px; align-items: start;
   }
-  .community h2 { margin: 0 0 6px; font-size: 26px; }
+  .community h2 { margin: 0 0 8px; font-size: 26px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
   .community p { margin: 0; color: var(--muted); max-width: 60ch; }
+  .community ul { margin: 14px 0 0; padding: 0; list-style: none; color: var(--muted); font-size: 14px; }
+  .community li { padding-left: 20px; position: relative; margin: 6px 0; }
+  .community li::before { content: ""; position: absolute; left: 2px; top: .5em; width: 8px; height: 8px;
+                          border-radius: 2px; background: var(--accent); opacity: .8; }
+  #join { display: grid; gap: 10px; }
+  #join label { font: 12px var(--mono); color: var(--muted); letter-spacing: .04em; }
+  #join input[type=email], #join textarea {
+    width: 100%; box-sizing: border-box; font: inherit; font-size: 15px; color: var(--text);
+    background: color-mix(in srgb, var(--bg) 70%, transparent); border: 1px solid var(--border);
+    border-radius: 10px; padding: 11px 13px;
+  }
+  #join textarea { resize: vertical; min-height: 64px; }
+  #join input:focus-visible, #join textarea:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; border-color: transparent; }
+  #join .row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+  #join button { cursor: pointer; font: inherit; font-weight: 600; }
+  #join button[disabled] { opacity: .6; cursor: progress; transform: none; }
+  #join .hp { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
+  #join-status { font-size: 14px; color: var(--muted); min-height: 1.4em; margin: 0; }
+  #join-status.ok { color: var(--accent); }
+  #join-status.err { color: #ff8a7a; }
 
   footer {
     margin-top: 88px; padding: 28px 0 40px; border-top: 1px solid var(--border);
@@ -289,6 +309,7 @@
       <a href="#games">Games</a>
       <a href="#worlds">Worlds</a>
       <a href="#vision">Vision</a>
+      <a href="#community">Community</a>
     </nav>
     <div class="voxels" role="group" aria-label="Page theme">
       <button type="button" data-theme="sand"  aria-pressed="false" title="Sand theme"  aria-label="Sand theme"  style="background:rgb(238,208,162)"></button>
@@ -436,12 +457,27 @@
       <p class="loop-note">and round again, each pass a little closer to how people think</p>
     </section>
 
-    <section class="community" aria-labelledby="community-title">
+    <section class="community" id="community" aria-labelledby="community-title">
       <div>
-        <h2 id="community-title">Community</h2>
-        <p>A place to share the worlds and levels you build, and to play other people&rsquo;s. Nothing here yet.</p>
+        <h2 id="community-title">Community <span class="badge">Coming soon</span></h2>
+        <p>A place to share the worlds and levels you build, and to play other people&rsquo;s. It isn&rsquo;t open yet. Leave your email and you&rsquo;ll be among the first in.</p>
+        <ul>
+          <li>Share worlds and levels you&rsquo;ve built</li>
+          <li>Play and rate other people&rsquo;s scenarios</li>
+          <li>Help shape what the AI agents learn from</li>
+        </ul>
       </div>
-      <span class="badge">Coming soon</span>
+      <form id="join" novalidate>
+        <label for="join-email">Your email</label>
+        <input id="join-email" name="email" type="email" required autocomplete="email" placeholder="you@example.com">
+        <label for="join-note">What would you build? (optional)</label>
+        <textarea id="join-note" name="note" rows="2" maxlength="1000" placeholder="A flood that has to be diverted, a city on a volcano…"></textarea>
+        <div class="hp" aria-hidden="true"><input name="_honey" tabindex="-1" autocomplete="off"></div>
+        <div class="row">
+          <button class="btn primary" type="submit">Join the community &rarr;</button>
+        </div>
+        <p id="join-status" role="status" aria-live="polite"></p>
+      </form>
     </section>
   </div>
 </main>
@@ -592,6 +628,48 @@
     document.querySelectorAll(".voxels button").forEach((b) => b.addEventListener("click", () => { if (reduce) draw(); }));
     resize();
     loop();
+  })();
+
+  // --------------------------------------------------------- community sign-up
+  // GitHub Pages can't send mail, so sign-ups go through FormSubmit, which
+  // emails each one on. To hide the address, replace it below with the random
+  // alias FormSubmit sends after the first (activation) submission.
+  const JOIN_ENDPOINT = "https://formsubmit.co/ajax/aaronz@berkeley.edu";
+  (function () {
+    const form = document.getElementById("join");
+    const status = document.getElementById("join-status");
+    const button = form.querySelector("button");
+    function say(text, kind) { status.textContent = text; status.className = kind || ""; }
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const email = form.email.value.trim();
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { say("That doesn't look like an email address.", "err"); form.email.focus(); return; }
+      if (form._honey.value) return;               // a bot filled the hidden field
+      button.disabled = true; say("Sending…");
+      try {
+        const res = await fetch(JOIN_ENDPOINT, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "Accept": "application/json" },
+          body: JSON.stringify({
+            _subject: "New community member: " + email,
+            _template: "table",
+            _replyto: email,
+            email,
+            "would build": form.note.value.trim() || "(not given)",
+            page: location.href,
+          }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok || String(data.success) !== "true") throw new Error(data.message || res.status);
+        form.reset();
+        say("You're on the list. We'll email you when the community opens.", "ok");
+      } catch (err) {
+        console.warn("Sign-up failed:", err);
+        say("Couldn't send that just now. Please try again in a minute.", "err");
+      } finally {
+        button.disabled = false;
+      }
+    });
   })();
 
   // --------------------------------------------------------- world gallery
