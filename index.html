@@ -246,9 +246,12 @@
   #join button { cursor: pointer; font: inherit; font-weight: 600; }
   #join button[disabled] { opacity: .6; cursor: progress; transform: none; }
   #join .hp { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
-  #join-status { font-size: 14px; color: var(--muted); min-height: 1.4em; margin: 0; }
-  #join-status.ok { color: var(--accent); }
-  #join-status.err { color: #ff8a7a; }
+  #join-status { font-size: 14px; color: var(--muted); margin: 0; }
+  #join-status:empty { display: none; }
+  #join-status.ok, #join-status.err { padding: 10px 12px; border-radius: 10px; font-weight: 600; }
+  #join-status.ok { color: var(--accent); background: color-mix(in srgb, var(--accent) 14%, transparent);
+                    border: 1px solid color-mix(in srgb, var(--accent) 45%, transparent); }
+  #join-status.err { color: #ff8a7a; background: rgba(255, 110, 90, .1); border: 1px solid rgba(255, 110, 90, .4); }
 
   footer {
     margin-top: 88px; padding: 28px 0 40px; border-top: 1px solid var(--border);
@@ -660,12 +663,17 @@
           }),
         });
         const data = await res.json().catch(() => ({}));
+        if (/activat/i.test(data.message || "")) {
+          // FormSubmit holds everything until the owner clicks its activation email
+          say("Sign-ups aren't switched on yet. Please try again a little later.", "err");
+          return;
+        }
         if (!res.ok || String(data.success) !== "true") throw new Error(data.message || res.status);
         form.reset();
         say("You're on the list. We'll email you when the community opens.", "ok");
       } catch (err) {
         console.warn("Sign-up failed:", err);
-        say("Couldn't send that just now. Please try again in a minute.", "err");
+        say("Couldn't send that (" + (err.message || "network error") + "). Please try again in a minute.", "err");
       } finally {
         button.disabled = false;
       }
