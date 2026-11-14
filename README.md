@@ -39,7 +39,8 @@ game is **Save the Villagers**:
   lose (each case was tested in the real sim).
 - **Level 2, Wildfire** (`wildfire`): a wildfire is burning across a dry meadow toward four
   wooden villagers. The kit is stone, sand, water, snow and delete, with spawners and 20
-  placements. You win when the fire has burned out with all four villagers intact.
+  placements. You win by keeping all four villagers intact until the 900-tick hold-out timer runs
+  down (or until the fire burns out, if that comes first).
 
 The second game is **Destroy the World**:
 
@@ -47,13 +48,24 @@ The second game is **Destroy the World**:
   that fire cannot cross, with wooden plank fuses linking them into two chains. You have two fires;
   burn at least 97% of the world. One fire in each chain wins (about 98% burns); two in the same
   chain leave the other chain standing (about 39% burns). Both were tested in the real sim.
+- **Level 2, Kindling** (`kindling`): five islands with no fuses at all, and a bonfire already
+  burning on one of them. You get no fire, only five 5x5x5 blocks of wood to build fuses with.
+  Narrow gullies (5 wide) take one block and the wide middle gully (9) takes two, so the budget is
+  exactly every narrow crossing plus one wide one. Tested in the real sim and through Play: the
+  right plan burns 99%+; spending two blocks twice leaves an island standing (81%, a loss).
 
-A third game, **Build a Path**, has one level:
+A third game, **Build a Path**:
 
-- **Aqueduct** (`aqueduct`): a spring on one plateau, the village's empty pool on the other, and an
+- **Level 1, Aqueduct** (`aqueduct`): a spring on one plateau, the village's empty pool on the other, and an
   old aqueduct across the chasm between them whose deck is missing. Lay the deck with stone (3
   placements, 2 needed) so 300 blocks of water reach the pool. Without a deck all the water falls
   into the chasm and is lost; with it the pool filled in about 15 seconds in testing.
+- **Level 2, Canyon Run** (`canyon-run`): a longer aqueduct down three tiers, with a corner and
+  three breaks: two 6-long chasms and a 3-long crack across the middle ledge. Exactly 5 stone
+  blocks (2 + 1 + 2); fill the pool with 150 blocks of water. Channel walls are 5 high and each
+  tier's walls reach the height of the tier above, because the long flat run backs up and spilled
+  over lower walls in testing. With all five decks the pool filled in about 1,150 ticks; without
+  the crack deck no water reaches it.
 
 Each level starts paused so you can build first. Play mode reads the world back by calling the
 sim's save function and parsing the result a couple of times a second, since the WebAssembly

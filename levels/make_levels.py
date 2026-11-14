@@ -403,6 +403,177 @@ def build_aqueduct(bridge=False):
     return w, []
 
 
+# ------------------------------------------------------------------- Kindling
+#
+# Destroy the World, level 2. Five islands like Ember Isle's, but no fuses at
+# all, and the player gets no fire: a bonfire is already burning on island A.
+# What the player has is wood, placed as 5x5x5 blocks, to build their own fuses.
+#
+#     A ---- B            narrow gaps (5 cells): one block bridges them
+#     :      :  :         wide gaps (9 cells): two blocks
+#     C -- D -- E
+#
+# The budget (5) is exactly the cheapest way to link every island to A: all
+# three narrow crossings (A-B, C-D, D-E) plus any one wide one. Spending two
+# blocks twice leaves an island unlinked.
+KI_W = 64
+KI_DEPTH = 4                                       # island base: turf y 2..5
+KI_ISLANDS = {                                     # x0, x1, z0, z1, kind
+    'A': (4, 20, 40, 59, 'meadow'),
+    'B': (26, 59, 40, 59, 'dune'),
+    'C': (4, 20, 4, 30, 'dune'),
+    'D': (26, 40, 4, 30, 'meadow'),
+    'E': (46, 59, 4, 30, 'dune'),
+}
+KI_BONFIRE = (12, 50)
+# where a 5x5x5 wood block sits to bridge each gap (centre x, y, z), for tests
+KI_BRIDGES = {
+    'AB': [(23, 4, 50)], 'CD': [(23, 4, 17)], 'DE': [(43, 4, 17)],
+    'AC': [(12, 4, 33), (12, 4, 38)], 'BD': [(33, 4, 33), (33, 4, 38)], 'BE': [(52, 4, 33), (52, 4, 38)],
+}
+
+
+def build_kindling(bridges=()):
+    w = World()
+    for cx in range(2):
+        for cz in range(2):
+            w.set(cx * 32, 0, cz * 32, EMPTY)
+    rng = random.Random(91)
+    w.fill(0, KI_W - 1, 0, 0, 0, KI_W - 1, STONE, BEDROCK)
+    for x in range(KI_W):
+        for z in range(KI_W):
+            w.set(x, 1, z, STONE, PEBBLE if rng.random() < 0.08 else GRAVEL)
+    for name, (x0, x1, z0, z1, kind) in KI_ISLANDS.items():
+        for x in range(x0, x1 + 1):
+            for z in range(z0, z1 + 1):
+                cxd, czd = min(x - x0, x1 - x), min(z - z0, z1 - z)
+                if cxd + czd < 2:
+                    continue
+                base = (GRASS_C if (x + z) % 3 else GRASS_D) if kind == 'meadow' else SAND_SHD
+                w.fill(x, x, 2, 1 + KI_DEPTH, z, z, TURF, base)
+                edge = min(cxd, czd)
+                if kind == 'dune' and edge >= 2:
+                    h = min(4, edge - 1, 2 + int(1.5 * math.sin(x / 2.6) + math.sin(z / 3.1)))
+                    if h > 0:
+                        w.fill(x, x, 2 + KI_DEPTH, 1 + KI_DEPTH + h, z, z, SAND,
+                               SAND_TOP if (x * 7 + z * 3) % 5 else SAND_SHD)
+                elif kind == 'meadow' and edge >= 1 and rng.random() < 0.05:
+                    w.set(x, 2 + KI_DEPTH, z, TURF, rng.choice(FLOWERS))
+    top = 2 + KI_DEPTH
+    for x, z in ((8, 45), (16, 55), (30, 10), (36, 24), (33, 17)):
+        for y in range(top, top + 4):
+            w.set(x, y, z, WOOD, TRUNK)
+        for dx in range(-2, 3):
+            for dz in range(-2, 3):
+                for dy in range(0, 3):
+                    if abs(dx) + abs(dz) + dy <= 3:
+                        w.set(x + dx, top + 3 + dy, z + dz, WOOD, LEAF)
+    # the bonfire: a ring of logs with fire in the middle
+    bx, bz = KI_BONFIRE
+    for dx in range(-2, 3):
+        for dz in range(-2, 3):
+            if max(abs(dx), abs(dz)) == 2:
+                w.set(bx + dx, top, bz + dz, WOOD, TRUNK)
+    w.fill(bx - 1, bx + 1, top, top + 2, bz - 1, bz + 1, FIRE)
+    for key in bridges:                 # for testing: the player's wood blocks
+        for (x, y, z) in KI_BRIDGES[key]:
+            w.fill(x - 2, x + 2, y - 2, y + 2, z - 2, z + 2, WOOD, FUSE_C)
+    return w, []
+
+
+# ----------------------------------------------------------------- Canyon Run
+#
+# Build a Path, level 2. A longer aqueduct with a corner and three breaks:
+#
+#   spring (north mesa, top y 14)
+#     | channel south, x 10..12
+#   [chasm 1, z 34..39: 6 long]          2 blocks
+#     | middle ledge (top y 12), turns east along z 20..22
+#     --- [crack, x 28..30: 3 long] ---  1 block
+#     | turns south at x 45..47
+#   [chasm 2, z 13..18: 6 long]          2 blocks
+#     | south plateau (top y 10)
+#   village pool
+#
+# Every break keeps its walls, hanging in the air, so only decks are missing and
+# a 3x3x3 block fits each 3-wide channel exactly. The budget is exactly 5.
+CR_W = 64
+CR_N_TOP, CR_M_TOP, CR_S_TOP = 14, 12, 10
+CR_GAP1 = (34, 39)             # chasm 1 (z), between the mesa and the ledge
+CR_GAP2 = (13, 18)             # chasm 2 (z), between the ledge and the plateau
+CR_CRACK = (28, 30)            # the crack across the ledge (x)
+CR_A = (10, 12)                # x of the first channel (interior)
+CR_B = (20, 22)                # z of the ledge channel (interior)
+CR_C = (45, 47)                # x of the last channel (interior)
+CR_POOL = (37, 55, 1, 9)       # x0, x1, z0, z1
+CR_POOL_DEPTH = 3
+CR_WALL_H = 5             # channel walls are 5 high, and every tier's walls reach as high as
+                          # the tier above: the long flat run backs up and overflowed lower walls
+CR_DECKS = [                   # where the five 3x3x3 blocks go (centre), for tests
+    (11, CR_M_TOP, 35), (11, CR_M_TOP, 38),
+    (29, CR_M_TOP - 1, 21),
+    (46, CR_S_TOP, 14), (46, CR_S_TOP, 17),
+]
+
+
+def build_canyon_run(decks=()):
+    w = World()
+    for cx in range(2):
+        for cz in range(2):
+            w.set(cx * 32, 0, cz * 32, EMPTY)
+    g1a, g1b = CR_GAP1
+    g2a, g2b = CR_GAP2
+    # three tiers of rock with grass-coloured tops; the chasms are empty all the way down
+    for (z0, z1, top, rock) in ((g1b + 1, CR_W - 1, CR_N_TOP, CLIFF), (g2b + 1, g1a - 1, CR_M_TOP, CLIFF_D),
+                                (0, g2a - 1, CR_S_TOP, CLIFF)):
+        w.fill(0, CR_W - 1, 0, top - 1, z0, z1, STONE, rock)
+        w.fill(0, CR_W - 1, top, top, z0, z1, STONE, MEADOW_STONE)
+    # the crack splits the ledge from top to bottom
+    w.fill(CR_CRACK[0], CR_CRACK[1], 0, CR_M_TOP, g2b + 1, g1a - 1, EMPTY)
+
+    def wall(x0, x1, y0, y1, z0, z1):
+        w.fill(x0, x1, y0, y1, z0, z1, STONE, CHANNEL)
+
+    ax0, ax1 = CR_A
+    bz0, bz1 = CR_B
+    cx0, cx1 = CR_C
+    # channel A: spring at z 56, south across chasm 1, down to the corner
+    wall(ax0 - 1, ax1 + 1, CR_N_TOP + 1, CR_N_TOP + CR_WALL_H, 58, 58)
+    for x in (ax0 - 1, ax1 + 1):
+        wall(x, x, CR_N_TOP + 1, CR_N_TOP + CR_WALL_H, g1b + 1, 57)
+        wall(x, x, CR_M_TOP - 1, CR_N_TOP + CR_WALL_H, g1a, g1b)           # hanging over chasm 1
+    w.fill(ax0, ax1, CR_N_TOP + CR_WALL_H, CR_N_TOP + CR_WALL_H, 56, 56, WATER_SPAWNER, (165, 70, 228))
+    wall(ax0 - 1, ax0 - 1, CR_M_TOP + 1, CR_N_TOP + CR_WALL_H, bz0 - 1, g1a - 1)   # west wall down to the corner
+    wall(ax1 + 1, ax1 + 1, CR_M_TOP + 1, CR_N_TOP + CR_WALL_H, bz1 + 1, g1a - 1)   # east wall stops at the turn
+    # channel B: east along the ledge
+    wall(ax0 - 1, cx1 + 1, CR_M_TOP + 1, CR_N_TOP + CR_WALL_H, bz0 - 1, bz0 - 1)   # south wall
+    wall(ax1 + 1, cx1 + 1, CR_M_TOP + 1, CR_N_TOP + CR_WALL_H, bz1 + 1, bz1 + 1)   # north wall
+    wall(cx1 + 1, cx1 + 1, CR_M_TOP + 1, CR_N_TOP + CR_WALL_H, bz0 - 1, bz1 + 1)   # east end
+    for z in (bz0 - 1, bz1 + 1):                                          # hanging over the crack
+        wall(CR_CRACK[0], CR_CRACK[1], CR_M_TOP - 2, CR_N_TOP + CR_WALL_H, z, z)
+    # channel C leaves channel B through a gap in its south wall, then runs south
+    # across chasm 2 to the pool
+    w.fill(cx0, cx1, CR_M_TOP + 1, CR_N_TOP + CR_WALL_H, bz0 - 1, bz0 - 1, EMPTY)
+    for x in (cx0 - 1, cx1 + 1):
+        wall(x, x, CR_M_TOP + 1, CR_N_TOP + CR_WALL_H, g2b + 1, bz0 - 1)
+        wall(x, x, CR_S_TOP - 1, CR_N_TOP + CR_WALL_H, g2a, g2b)           # hanging over chasm 2
+        wall(x, x, CR_S_TOP + 1, CR_M_TOP + CR_WALL_H, CR_POOL[3] + 1, g2a - 1)
+    # the pool, dug into the plateau
+    px0, px1, pz0, pz1 = CR_POOL
+    w.fill(px0, px1, CR_S_TOP - CR_POOL_DEPTH + 1, CR_S_TOP, pz0, pz1, EMPTY)
+    w.fill(px0, px1, CR_S_TOP - CR_POOL_DEPTH, CR_S_TOP - CR_POOL_DEPTH, pz0, pz1, STONE, POOL_C)
+    # the village: huts on the plateau, west of the pool
+    for hx, hz in ((8, 2), (16, 6), (26, 2), (24, 9), (8, 9)):
+        for dx in range(4):
+            for dz in range(4):
+                for dy in range(4):
+                    if dx in (0, 3) or dz in (0, 3) or dy == 3:
+                        w.set(hx + dx, CR_S_TOP + 1 + dy, hz + dz, WOOD, ROOF if dy == 3 else WALL)
+    for (x, y, z) in decks:             # for testing: the player's stone blocks
+        w.fill(x - 1, x + 1, y - 1, y + 1, z - 1, z + 1, STONE, (135, 140, 140))
+    return w, []
+
+
 # Save the Villagers levels are won by holding out: keep every villager alive
 # until the timer runs down. A level gets this unless it sets its own 'win'.
 # (Play also ends a level early, as a win, if the hazard dies out completely.)
@@ -525,6 +696,42 @@ LEVELS = [{
     'size': EI_W,
     'build': build_ember_isle,
 }, {
+    'id': 'kindling',
+    'game': 'destroy',
+    'name': 'Kindling',
+    'subtitle': 'Destroy the World · Level 2',
+    'brief': 'Five islands again, but no fuses this time, and no fire for you to place. A bonfire is '
+             'already burning on the north-west meadow.',
+    'goal': 'Burn at least 97% of the world. You have five blocks of wood to build your own fuses.',
+    'hints': [
+        'Fire only crosses a gully on something that burns. A block of wood is 5 cells across.',
+        'The narrow gullies are 5 wide, so one block bridges them. The wide gully across the middle '
+        'is 9, so it takes two.',
+        'Every island has to be linked to the bonfire, directly or through other islands. Use every '
+        'narrow crossing, and you can afford exactly one wide one.',
+        'Sit the wood on the gully floor, level with the islands, so it touches both sides.',
+    ],
+    'materials': ['wood'],
+    'spawners': False,
+    'placements': 5,
+    'max_brush': 5,
+    'brush': 5,
+    'unit': ['block of wood', 'blocks of wood'],
+    'hazard': {'label': 'Fire blocks', 'types': [FIRE, FIRE_SPAWNER]},
+    'win': {'type': 'destroy', 'target': 0.97, 'types': [SAND, GRASS, 7, WOOD, TURF]},
+    'messages': {'lost': 'At least one island was never linked to the bonfire.'},
+    'labels': {
+        'kit': 'Your wood',
+        'start': 'Let it burn',
+        'running': 'Burning. You can still place wood.',
+        'planning': 'Paused. Build your fuses, then let it burn.',
+        'won': 'The world is ash',
+        'lost': 'Some of the world survived',
+    },
+    'camera': {'eye': [32, 92, -26], 'look': [32, 0, 30]},
+    'size': KI_W,
+    'build': build_kindling,
+}, {
     'id': 'aqueduct',
     'game': 'build',
     'name': 'Aqueduct',
@@ -558,6 +765,43 @@ LEVELS = [{
     'camera': {'eye': [70, 44, -10], 'look': [31, 6, 32]},
     'size': AQ_W,
     'build': build_aqueduct,
+}, {
+    'id': 'canyon-run',
+    'game': 'build',
+    'name': 'Canyon Run',
+    'subtitle': 'Build a Path · Level 2',
+    'brief': 'A longer aqueduct winds down three tiers of canyon to the village. It has broken in three '
+             'places: two chasms and a crack across the middle ledge.',
+    'goal': 'Repair all three breaks so the spring reaches the village pool. Fill it with 150 blocks of water.',
+    'hints': [
+        'Follow the channel from the spring and find all three breaks before you place anything.',
+        'A 3x3x3 block fits exactly between the walls. The chasms are 6 long and take two blocks; '
+        'the crack is 3 long and takes one.',
+        'You have exactly five blocks, so each one has to count. The red outline shows where a '
+        'block will land.',
+        'Water only runs downhill or sideways. A deck sitting higher than the channel feeding it '
+        'is a dam, not a bridge.',
+    ],
+    'materials': ['stone'],
+    'spawners': False,
+    'placements': 5,
+    'max_brush': 3,
+    'brush': 3,
+    'hazard': {'label': 'Water blocks', 'types': [WATER]},
+    'win': {'type': 'fill', 'label': 'Pool filled', 'types': [WATER], 'target': 150,
+            'region': [CR_POOL[0], CR_POOL[1], CR_S_TOP - CR_POOL_DEPTH + 1, CR_S_TOP,
+                       CR_POOL[2], CR_POOL[3]]},
+    'labels': {
+        'kit': 'Your stone',
+        'start': 'Turn on the spring',
+        'running': 'The spring is flowing. You can still place blocks.',
+        'planning': 'Paused. Repair the aqueduct, then turn on the spring.',
+        'won': 'The village has water',
+        'lost': 'The pool stayed dry',
+    },
+    'camera': {'eye': [86, 76, -30], 'look': [30, 6, 32]},
+    'size': CR_W,
+    'build': build_canyon_run,
 }]
 
 

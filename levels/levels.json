@@ -1295,6 +1295,78 @@
    "villagers": []
   },
   {
+   "id": "kindling",
+   "game": "destroy",
+   "name": "Kindling",
+   "subtitle": "Destroy the World \u00b7 Level 2",
+   "brief": "Five islands again, but no fuses this time, and no fire for you to place. A bonfire is already burning on the north-west meadow.",
+   "goal": "Burn at least 97% of the world. You have five blocks of wood to build your own fuses.",
+   "hints": [
+    "Fire only crosses a gully on something that burns. A block of wood is 5 cells across.",
+    "The narrow gullies are 5 wide, so one block bridges them. The wide gully across the middle is 9, so it takes two.",
+    "Every island has to be linked to the bonfire, directly or through other islands. Use every narrow crossing, and you can afford exactly one wide one.",
+    "Sit the wood on the gully floor, level with the islands, so it touches both sides."
+   ],
+   "materials": [
+    "wood"
+   ],
+   "spawners": false,
+   "placements": 5,
+   "max_brush": 5,
+   "brush": 5,
+   "unit": [
+    "block of wood",
+    "blocks of wood"
+   ],
+   "hazard": {
+    "label": "Fire blocks",
+    "types": [
+     4,
+     14
+    ]
+   },
+   "win": {
+    "type": "destroy",
+    "target": 0.97,
+    "types": [
+     2,
+     6,
+     7,
+     8,
+     23
+    ],
+    "total": 10804
+   },
+   "messages": {
+    "lost": "At least one island was never linked to the bonfire."
+   },
+   "labels": {
+    "kit": "Your wood",
+    "start": "Let it burn",
+    "running": "Burning. You can still place wood.",
+    "planning": "Paused. Build your fuses, then let it burn.",
+    "won": "The world is ash",
+    "lost": "Some of the world survived"
+   },
+   "camera": {
+    "eye": [
+     32,
+     92,
+     -26
+    ],
+    "look": [
+     32,
+     0,
+     30
+    ]
+   },
+   "size": 64,
+   "file": "kindling.demo.gz",
+   "thumb": "kindling.png",
+   "hash": "f24c790c3d26",
+   "villagers": []
+  },
+  {
    "id": "aqueduct",
    "game": "build",
    "name": "Aqueduct",
@@ -1359,6 +1431,74 @@
    "file": "aqueduct.demo.gz",
    "thumb": "aqueduct.png",
    "hash": "34a44af3a8ed",
+   "villagers": []
+  },
+  {
+   "id": "canyon-run",
+   "game": "build",
+   "name": "Canyon Run",
+   "subtitle": "Build a Path \u00b7 Level 2",
+   "brief": "A longer aqueduct winds down three tiers of canyon to the village. It has broken in three places: two chasms and a crack across the middle ledge.",
+   "goal": "Repair all three breaks so the spring reaches the village pool. Fill it with 150 blocks of water.",
+   "hints": [
+    "Follow the channel from the spring and find all three breaks before you place anything.",
+    "A 3x3x3 block fits exactly between the walls. The chasms are 6 long and take two blocks; the crack is 3 long and takes one.",
+    "You have exactly five blocks, so each one has to count. The red outline shows where a block will land.",
+    "Water only runs downhill or sideways. A deck sitting higher than the channel feeding it is a dam, not a bridge."
+   ],
+   "materials": [
+    "stone"
+   ],
+   "spawners": false,
+   "placements": 5,
+   "max_brush": 3,
+   "brush": 3,
+   "hazard": {
+    "label": "Water blocks",
+    "types": [
+     3
+    ]
+   },
+   "win": {
+    "type": "fill",
+    "label": "Pool filled",
+    "types": [
+     3
+    ],
+    "target": 150,
+    "region": [
+     37,
+     55,
+     8,
+     10,
+     1,
+     9
+    ]
+   },
+   "labels": {
+    "kit": "Your stone",
+    "start": "Turn on the spring",
+    "running": "The spring is flowing. You can still place blocks.",
+    "planning": "Paused. Repair the aqueduct, then turn on the spring.",
+    "won": "The village has water",
+    "lost": "The pool stayed dry"
+   },
+   "camera": {
+    "eye": [
+     86,
+     76,
+     -30
+    ],
+    "look": [
+     30,
+     6,
+     32
+    ]
+   },
+   "size": 64,
+   "file": "canyon-run.demo.gz",
+   "thumb": "canyon-run.png",
+   "hash": "4e029e58ba87",
    "villagers": []
   }
  ]

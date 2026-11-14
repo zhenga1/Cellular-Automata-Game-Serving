@@ -250,6 +250,7 @@ const MATERIALS = {
   water:  {label: "Water",  color: "rgba(37,125,255,.85)"},
   snow:   {label: "Snow",   color: "rgb(252,252,252)"},
   stone:  {label: "Stone",  color: "rgb(135,140,140)"},
+  wood:   {label: "Wood",   color: "rgb(132,94,56)"},
   delete: {label: "Delete", color: "repeating-linear-gradient(45deg,#555 0 3px,#2a2a2a 3px 6px)"}
 };
 
@@ -434,17 +435,21 @@ function tickState() {
     }
     if (level.win.type === "destroy") {
       const done = 1 - remaining / level.win.total;
+      const unit = level.unit || ["fire", "fires"];          // what a placement is called
+      const relight = level.materials.includes("fire");    // can the player start a new fire?
       showBurned(done);
       if (done >= level.win.target) {
         finish(true, "The whole world went up in smoke: " + Math.floor(done * 100) +
                      "% burned, using " + (level.placements - placementsLeft) + " of " +
-                     level.placements + " fires.");
-      } else if (fire === 0 && placementsLeft === 0) {
-        finish(false, "The fires went out with " + Math.floor(done * 100) + "% of the world burned, short of " +
-                      Math.round(level.win.target * 100) + "%. Fire cannot cross bare stone: look at which islands are linked.");
+                     level.placements + " " + unit[1] + ".");
+      } else if (fire === 0 && (placementsLeft === 0 || !relight)) {
+        finish(false, "The fire went out with " + Math.floor(done * 100) + "% of the world burned, short of " +
+                      Math.round(level.win.target * 100) + "%. " +
+                      ((level.messages && level.messages.lost) ||
+                       "Fire cannot cross bare stone: look at which islands are linked."));
       } else if (fire === 0) {
-        $("phase").textContent = "The fire is out. You still have " + placementsLeft +
-                                 (placementsLeft === 1 ? " fire" : " fires") + " to place.";
+        $("phase").textContent = "The fire is out. You still have " + placementsLeft + " " +
+                                 (placementsLeft === 1 ? unit[0] : unit[1]) + " to place.";
       }
       return;
     }
