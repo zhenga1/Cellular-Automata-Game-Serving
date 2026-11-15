@@ -50,6 +50,17 @@
     ]
    },
    "size": 64,
+   "solution": [
+    {
+     "material": "stone",
+     "brush": 3,
+     "at": [
+      31,
+      10,
+      29
+     ]
+    }
+   ],
    "file": "lava-fork.demo.gz",
    "thumb": "lava-fork.png",
    "hash": "e921cb6661ec",
@@ -1289,6 +1300,26 @@
     ]
    },
    "size": 64,
+   "solution": [
+    {
+     "material": "fire",
+     "brush": 3,
+     "at": [
+      33,
+      8,
+      50
+     ]
+    },
+    {
+     "material": "fire",
+     "brush": 3,
+     "at": [
+      45,
+      7,
+      18
+     ]
+    }
+   ],
    "file": "ember-isle.demo.gz",
    "thumb": "ember-isle.png",
    "hash": "b47a99683923",
@@ -1361,6 +1392,53 @@
     ]
    },
    "size": 64,
+   "solution": [
+    {
+     "material": "wood",
+     "brush": 5,
+     "at": [
+      23,
+      4,
+      50
+     ]
+    },
+    {
+     "material": "wood",
+     "brush": 5,
+     "at": [
+      12,
+      4,
+      33
+     ]
+    },
+    {
+     "material": "wood",
+     "brush": 5,
+     "at": [
+      12,
+      4,
+      38
+     ]
+    },
+    {
+     "material": "wood",
+     "brush": 5,
+     "at": [
+      23,
+      4,
+      17
+     ]
+    },
+    {
+     "material": "wood",
+     "brush": 5,
+     "at": [
+      43,
+      4,
+      17
+     ]
+    }
+   ],
    "file": "kindling.demo.gz",
    "thumb": "kindling.png",
    "hash": "f24c790c3d26",
@@ -1428,6 +1506,26 @@
     ]
    },
    "size": 64,
+   "solution": [
+    {
+     "material": "stone",
+     "brush": 3,
+     "at": [
+      31,
+      9,
+      32
+     ]
+    },
+    {
+     "material": "stone",
+     "brush": 3,
+     "at": [
+      31,
+      9,
+      29
+     ]
+    }
+   ],
    "file": "aqueduct.demo.gz",
    "thumb": "aqueduct.png",
    "hash": "34a44af3a8ed",
@@ -1496,6 +1594,53 @@
     ]
    },
    "size": 64,
+   "solution": [
+    {
+     "material": "stone",
+     "brush": 3,
+     "at": [
+      11,
+      12,
+      38
+     ]
+    },
+    {
+     "material": "stone",
+     "brush": 3,
+     "at": [
+      11,
+      12,
+      35
+     ]
+    },
+    {
+     "material": "stone",
+     "brush": 3,
+     "at": [
+      29,
+      11,
+      21
+     ]
+    },
+    {
+     "material": "stone",
+     "brush": 3,
+     "at": [
+      46,
+      10,
+      17
+     ]
+    },
+    {
+     "material": "stone",
+     "brush": 3,
+     "at": [
+      46,
+      10,
+      14
+     ]
+    }
+   ],
    "file": "canyon-run.demo.gz",
    "thumb": "canyon-run.png",
    "hash": "4e029e58ba87",

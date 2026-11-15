@@ -106,6 +106,9 @@ details li{margin:4px 0}
 #toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%) translateY(20px);background:var(--panel);border:1px solid var(--panel-border);border-radius:var(--radius);padding:8px 14px;opacity:0;transition:all .25s;z-index:6;pointer-events:none}
 #toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 @media (max-width:820px){#brief{width:auto;right:12px;max-height:40vh}#hud{top:auto;bottom:12px;left:12px;right:12px;width:auto;max-height:46vh}}
+/* race mode: half a screen each, so a slim panel on each side and the view in between */
+body.race #brief{right:auto;width:min(240px,calc(100vw - 280px))}
+body.race #hud{top:12px;bottom:auto;left:auto;right:12px;width:230px;max-height:calc(100vh - 70px)}
 </style>
 </head>
 <body>
@@ -121,6 +124,7 @@ details li{margin:4px 0}
   <div class="sub" id="level-sub"></div>
   <nav id="levels" aria-label="Levels"></nav>
   <p id="other-game" style="margin:6px 0 0;font-size:12px"></p>
+  <p id="race-link" style="margin:4px 0 0;font-size:12px;font-weight:600"></p>
   <h2 id="level-name"></h2>
   <p id="level-brief"></p>
   <div id="goal"><b>Goal</b><span id="level-goal"></span></div>
@@ -394,13 +398,14 @@ function setPhase(next, note) {
   phase = next;
   $("phase").textContent = note || "";
   const start = $("start");
-  start.disabled = next !== "planning";
+  start.disabled = next !== "planning" || raceLocked;
   start.textContent = next === "planning" ? level.labels.start
                     : next === "running" ? "Running…"
                     : "Level over";
 }
 
 function finish(won, text) {
+  racePost({type: "done", won, ms: performance.now() - raceT0, text});
   recordFrame(true);
   setPhase(won ? "won" : "lost");
   call("ca_set_paused", null, ["number"], [1]);
@@ -492,6 +497,85 @@ function completeLevel() {
             : "all " + level.villagers.length + " villagers are still standing";
   finish(true, "The " + what + " died out early and " + who + ". You used " +
                (level.placements - placementsLeft) + " of " + level.placements + " placements.");
+}
+
+/* ------------------------------------------------------------------ race */
+
+// race.html shows two of these pages side by side: ?race=you for the player and
+// ?race=solver for the Solver. The Solver is not an AI: it knows the level's
+// answer (level.solution in levels.json) and plays it out slowly, gliding the
+// camera to each spot, pausing to "think", then placing the block, just as a
+// player would with F. Both sides stay locked until race.html sends "go".
+const RACE = new URLSearchParams(location.search).get("race");   // "you" | "solver" | null
+let raceLocked = RACE === "you" || RACE === "solver", raceT0 = 0, solverCam = null;
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+function racePost(msg) {
+  if (RACE && parent !== window) parent.postMessage(Object.assign({race: RACE}, msg), location.origin);
+}
+
+function setupRace() {
+  document.body.classList.add("race");
+  $("brief-collapse").click();                        // half a screen: give the view the room
+  document.querySelectorAll("#brief a").forEach(a => { a.target = "_top"; });
+  for (const id of ["levels", "other-game", "race-link"]) $(id).hidden = true;
+  for (const id of ["next", "sandbox"]) $(id).style.display = "none";
+  $("phase").textContent = RACE === "solver" ? "The Solver is waiting for the start." : "Waiting for the start…";
+  setPhase("planning", $("phase").textContent);
+  racePost({type: "ready", solvable: !!level.solution, name: level.name});
+}
+
+window.addEventListener("message", e => {
+  if (!RACE || e.origin !== location.origin || !e.data || e.data.type !== "go") return;
+  raceLocked = false;
+  raceT0 = performance.now();
+  setPhase("planning", level.labels.planning);
+  if (RACE === "solver") runSolver(Number(e.data.pace) || 1);
+  else $("canvas").focus();
+});
+
+async function glide(eye, look, ms) {
+  const from = solverCam || {eye: level.camera.eye, look: level.camera.look};
+  const t0 = performance.now();
+  for (;;) {
+    const k = Math.min(1, (performance.now() - t0) / ms), s = k * k * (3 - 2 * k);
+    const mix = (a, b) => a.map((v, i) => v + (b[i] - v) * s);
+    call("ca_place_camera", null, Array(6).fill("number"), [...mix(from.eye, eye), ...mix(from.look, look)]);
+    if (k >= 1) break;
+    await new Promise(r => requestAnimationFrame(r));
+  }
+  solverCam = {eye, look};
+}
+
+function pressKey(key, code, keyCode) {
+  for (const type of ["keydown", "keyup"]) {
+    window.dispatchEvent(new KeyboardEvent(type, {key, code, keyCode, which: keyCode, bubbles: true}));
+  }
+}
+const pressF = () => pressKey("f", "KeyF", 70);
+
+async function runSolver(pace) {
+  const steps = level.solution || [];
+  const say = t => { if (phase === "planning") $("phase").textContent = t; };
+  pressKey("c", "KeyC", 67);                // the Solver aims without the red cursor
+  say("Solver: studying the level…");
+  await sleep(3500 * pace);
+  for (const [i, step] of steps.entries()) {
+    if (phase !== "planning") return;
+    const [x, y, z] = step.at.map(v => v + 0.5);
+    say("Solver: looking for spot " + (i + 1) + " of " + steps.length + "…");
+    await glide([x, y + 4, z - 3], [x, y, z], 2800 * pace);       // the look block is 5 ahead
+    say("Solver: thinking…");
+    await sleep(2400 * pace);
+    selectMaterial(step.material);
+    setBrush(step.brush);
+    pressF();
+    say("Solver: placed " + (i + 1) + " of " + steps.length + ".");
+    await sleep(1000 * pace);
+  }
+  await glide(level.camera.eye, level.camera.look, 2200 * pace);
+  await sleep(800 * pace);
+  startFire();
 }
 
 /* ------------------------------------------------------------ recording */
@@ -709,6 +793,7 @@ window.addEventListener("keydown", e => {
   if (!ready || e.ctrlKey || e.metaKey || e.altKey) return;
   const block = () => { e.preventDefault(); e.stopImmediatePropagation(); };
   const key = e.key.toLowerCase();
+  if (raceLocked && SIM_KEYS.has(key)) { block(); return; }   // race mode, before "Go"
 
   // Once the level is decided, the world is frozen; ignore anything that would
   // still drive the simulation.
@@ -898,6 +983,9 @@ var Module = {
       loadLevelWorld();
       selectMaterial(level.materials[0]);
       setBrush(level.brush || Math.min(2, level.max_brush));
+      if (RACE) setupRace();
+      else if (level.solution) $("race-link").innerHTML =
+        '<a href="race.html?level=' + encodeURIComponent(level.id) + '" style="color:var(--accent)">Race the Solver &rarr;</a>';
       requestAnimationFrame(countTick);
       $("canvas").focus();
       setInterval(tickState, 200);

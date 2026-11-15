@@ -626,6 +626,8 @@ LEVELS = [{
     'camera': {'eye': [8, 52, -6], 'look': [40, 8, 30]},
     'size': LF_W,
     'build': build_lava_fork,
+    # the Solver's answer in race mode: each block's centre, tested in the sim
+    'solution': [{'material': 'stone', 'brush': 3, 'at': [31, 10, 29]}],
 }, {
     'id': 'wildfire',
     'game': 'save',
@@ -695,6 +697,8 @@ LEVELS = [{
     'camera': {'eye': [32, 92, -26], 'look': [32, 0, 30]},
     'size': EI_W,
     'build': build_ember_isle,
+    # the Solver's answer in race mode: each block's centre, tested in the sim
+    'solution': [{'material': 'fire', 'brush': 3, 'at': [33, 8, 50]}, {'material': 'fire', 'brush': 3, 'at': [45, 7, 18]}],
 }, {
     'id': 'kindling',
     'game': 'destroy',
@@ -731,6 +735,8 @@ LEVELS = [{
     'camera': {'eye': [32, 92, -26], 'look': [32, 0, 30]},
     'size': KI_W,
     'build': build_kindling,
+    # the Solver's answer in race mode: each block's centre, tested in the sim
+    'solution': [{'material': 'wood', 'brush': 5, 'at': [23, 4, 50]}, {'material': 'wood', 'brush': 5, 'at': [12, 4, 33]}, {'material': 'wood', 'brush': 5, 'at': [12, 4, 38]}, {'material': 'wood', 'brush': 5, 'at': [23, 4, 17]}, {'material': 'wood', 'brush': 5, 'at': [43, 4, 17]}],
 }, {
     'id': 'aqueduct',
     'game': 'build',
@@ -765,6 +771,8 @@ LEVELS = [{
     'camera': {'eye': [70, 44, -10], 'look': [31, 6, 32]},
     'size': AQ_W,
     'build': build_aqueduct,
+    # the Solver's answer in race mode: each block's centre, tested in the sim
+    'solution': [{'material': 'stone', 'brush': 3, 'at': [31, 9, 32]}, {'material': 'stone', 'brush': 3, 'at': [31, 9, 29]}],
 }, {
     'id': 'canyon-run',
     'game': 'build',
@@ -802,6 +810,8 @@ LEVELS = [{
     'camera': {'eye': [86, 76, -30], 'look': [30, 6, 32]},
     'size': CR_W,
     'build': build_canyon_run,
+    # the Solver's answer in race mode: each block's centre, tested in the sim
+    'solution': [{'material': 'stone', 'brush': 3, 'at': [11, 12, 38]}, {'material': 'stone', 'brush': 3, 'at': [11, 12, 35]}, {'material': 'stone', 'brush': 3, 'at': [29, 11, 21]}, {'material': 'stone', 'brush': 3, 'at': [46, 10, 17]}, {'material': 'stone', 'brush': 3, 'at': [46, 10, 14]}],
 }]
 
 
