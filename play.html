@@ -109,6 +109,7 @@ details li{margin:4px 0}
 /* race mode: half a screen each, so a slim panel on each side and the view in between */
 body.race #brief{right:auto;width:min(240px,calc(100vw - 280px))}
 body.race #hud{top:12px;bottom:auto;left:auto;right:12px;width:230px;max-height:calc(100vh - 70px)}
+.sound-row{display:flex;align-items:center;gap:8px}.sound-row .sound-btn{display:inline-flex;align-items:center;justify-content:center;padding:6px 9px}.sound-row .sound-btn[aria-pressed="true"]{color:var(--muted)}.sound-row .sound-volume{flex:1}
 </style>
 </head>
 <body>
@@ -193,6 +194,11 @@ body.race #hud{top:12px;bottom:auto;left:auto;right:12px;width:230px;max-height:
     <div id="phase"></div>
   </div>
 
+  <div class="section">
+    <div class="label">Sound <span class="hint">M to mute</span></div>
+    <div class="sound-row" id="sound-control"></div>
+  </div>
+
   <div class="section row">
     <button class="primary" id="start">Start</button>
     <button id="restart" title="Put the level back to the beginning">Restart</button>
@@ -237,10 +243,12 @@ body.race #hud{top:12px;bottom:auto;left:auto;right:12px;width:230px;max-height:
 
 <div id="toast" role="status" aria-live="polite"></div>
 
+<script src="audio.js?v=2c6f902f8faf"></script>
 <script>
 "use strict";
-const BUILD_ID = "d5bdece32953";
+const BUILD_ID = "2c6f902f8faf";
 const $ = id => document.getElementById(id);
+if (window.GameAudio) GameAudio.mountControl($("sound-control"), true);
 const versioned = u => BUILD_ID.startsWith("__") ? u : u + "?v=" + BUILD_ID;
 
 // Material id of wood as the sim stores it in a world file (src/cell_types.h).
@@ -395,6 +403,7 @@ function showVillagers(burned) {
 }
 
 function setPhase(next, note) {
+  if (window.GameAudio && next === "running" && phase === "planning") GameAudio.cue("start");
   phase = next;
   $("phase").textContent = note || "";
   const start = $("start");
@@ -408,6 +417,7 @@ function finish(won, text) {
   racePost({type: "done", won, ms: performance.now() - raceT0, text});
   recordFrame(true);
   setPhase(won ? "won" : "lost");
+  if (window.GameAudio) GameAudio.cue(won ? "win" : "lose");
   call("ca_set_paused", null, ["number"], [1]);
   const box = $("result");
   box.className = "show " + (won ? "won" : "lost");
@@ -703,6 +713,7 @@ function loadLevelWorld(message) {
 function selectMaterial(id) {
   if (!call("ca_set_material", "number", ["string"], [id])) return;
   selected = id;
+  if (window.GameAudio) GameAudio.cue("select");
   for (const [key, btn] of Object.entries(matButtons)) {
     btn.setAttribute("aria-pressed", String(key === id));
   }
@@ -771,6 +782,7 @@ function updateTimer() {
 
 function spendPlacement() {
   if (placementsLeft <= 0) {
+    if (window.GameAudio) GameAudio.cue("denied");
     toast("No placements left. Restart to try a different plan.");
     return false;
   }
@@ -939,6 +951,7 @@ var Module = {
   },
   onRuntimeInitialized() {
     ready = true;
+    if (window.GameAudio) GameAudio.attach(Module);
     requestAnimationFrame(() => requestAnimationFrame(() => {
       overlay.classList.add("hidden");
       $("level-sub").textContent = level.subtitle;
@@ -1004,6 +1017,6 @@ if (!document.createElement("canvas").getContext("webgl2")) {
   showError("This page needs WebGL 2, which your browser does not support.");
 }
 </script>
-<script async src="sim.js?v=d5bdece32953"></script>
+<script async src="sim.js?v=2c6f902f8faf"></script>
 </body>
 </html>
