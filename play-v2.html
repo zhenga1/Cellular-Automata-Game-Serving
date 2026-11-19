@@ -1,0 +1,964 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Play · Cellular Automata Sandbox</title>
+<meta name="description" content="Challenge levels for the 3D falling-sand sandbox: steer lava away from a village with one block, or hold back a wildfire.">
+<style>
+:root{--bg:#15171c;--panel:rgba(22,24,30,.86);--panel-border:rgba(255,255,255,.08);--text:#e8e9ec;--muted:#9095a1;--accent:#7cc4ff;--good:#7fe0a6;--bad:#ff8a80;--warn:#ffc46b;--hover:rgba(255,255,255,.07);--active:rgba(124,196,255,.18);--radius:10px}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{margin:0;height:100%;overflow:hidden;background:var(--bg);color:var(--text);font:13px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+#canvas{position:fixed;inset:0;width:100vw;height:100vh;display:block;outline:0;background:#404040}
+#overlay{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;background:var(--bg);z-index:20;transition:opacity .4s ease}
+#overlay.hidden{opacity:0;pointer-events:none}
+#overlay h1{margin:0;font-size:22px;font-weight:600;letter-spacing:.2px}
+#status{color:var(--muted);min-height:1.4em;text-align:center;max-width:80vw}
+#bar{width:260px;height:4px;border-radius:2px;background:rgba(255,255,255,.08);overflow:hidden}
+#bar>div{height:100%;width:0;background:var(--accent);transition:width .15s}
+#overlay.error #bar{display:none}
+#overlay.error #status{color:var(--bad)}
+
+.panel{position:fixed;background:var(--panel);backdrop-filter:blur(10px);border:1px solid var(--panel-border);border-radius:14px;z-index:5;user-select:none;box-shadow:0 8px 30px rgba(0,0,0,.35)}
+#brief{top:12px;left:12px;width:300px;max-height:calc(100vh - 24px);overflow-y:auto;padding:12px 14px}
+#hud{top:12px;right:12px;width:258px;max-height:calc(100vh - 24px);overflow-y:auto;padding:12px}
+.panel.collapsed>:not(header){display:none}
+header{display:flex;align-items:center;justify-content:space-between;gap:8px}
+header h1{margin:0;font-size:14px;font-weight:600;display:flex;align-items:center;gap:8px;white-space:nowrap}
+header h1 a{color:var(--muted);text-decoration:none;font-weight:500}
+header h1 a:hover{color:var(--text)}
+header h1 a:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:4px}
+.section{margin-top:14px}
+.label{display:flex;justify-content:space-between;align-items:baseline;color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.6px;margin-bottom:6px}
+.label span{text-transform:none;letter-spacing:0;color:var(--text);font-size:12px}
+button{font:inherit;color:var(--text);background:rgba(255,255,255,.05);border:1px solid var(--panel-border);border-radius:var(--radius);padding:7px 10px;cursor:pointer;text-align:center}
+button:hover:not(:disabled){background:var(--hover)}
+button:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+button:disabled{opacity:.45;cursor:default}
+button.primary{background:rgba(124,196,255,.16);border-color:rgba(124,196,255,.5);color:#dcefff;font-weight:600}
+button.primary:hover:not(:disabled){background:rgba(124,196,255,.26)}
+.icon-btn{padding:4px 8px;font-size:15px;line-height:1}
+.row{display:flex;gap:6px}
+.row>*{flex:1}
+#materials{display:grid;grid-template-columns:repeat(2,1fr);gap:5px}
+.mat{display:flex;align-items:center;gap:8px;text-align:left;padding:6px 8px}
+.mat .swatch{width:16px;height:16px;border-radius:4px;flex:none;box-shadow:inset 0 0 0 1px rgba(255,255,255,.15)}
+.mat .key{margin-left:auto;color:var(--muted);font-size:11px}
+.mat[aria-pressed=true]{background:var(--active);border-color:var(--accent)}
+.switch{display:flex;align-items:center;justify-content:space-between;gap:10px;cursor:pointer}
+.switch input{appearance:none;width:34px;height:20px;border-radius:10px;background:rgba(255,255,255,.15);position:relative;cursor:pointer;transition:background .15s;flex:none;margin:0}
+.switch input::after{content:"";position:absolute;top:3px;left:3px;width:14px;height:14px;border-radius:50%;background:#fff;transition:transform .15s}
+.switch input:checked{background:var(--accent)}
+.switch input:checked::after{transform:translateX(14px)}
+.hint{color:var(--muted);font-size:11px;margin-top:4px}
+input[type=range]{width:100%;accent-color:var(--accent)}
+dl{display:grid;grid-template-columns:auto 1fr;gap:4px 10px;margin:8px 0 0;font-size:12px}
+dt{color:var(--text);white-space:nowrap}
+dd{margin:0;color:var(--muted)}
+kbd{font:11px ui-monospace,Consolas,monospace;padding:1px 4px;border-radius:4px;border:1px solid var(--panel-border);background:rgba(255,255,255,.06)}
+details summary{cursor:pointer;color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.6px}
+details ul{margin:8px 0 0;padding-left:18px;color:var(--muted);font-size:12px}
+details li{margin:4px 0}
+
+#brief h2{margin:10px 0 2px;font-size:16px;font-weight:600}
+#brief .sub{color:var(--accent);font-size:11px;text-transform:uppercase;letter-spacing:.6px}
+#brief p{margin:8px 0;color:var(--muted);font-size:12px}
+#goal{border:1px solid var(--panel-border);border-left:3px solid var(--accent);border-radius:8px;padding:8px 10px;margin-top:10px;font-size:12px}
+#goal b{display:block;color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.6px;margin-bottom:3px;font-weight:500}
+#villagers{list-style:none;margin:8px 0 0;padding:0;font-size:12px}
+#villagers li{display:flex;align-items:center;gap:8px;padding:3px 0}
+#villagers .dot{width:10px;height:10px;border-radius:50%;flex:none;box-shadow:inset 0 0 0 1px rgba(0,0,0,.35)}
+#villagers li.gone{color:var(--bad);text-decoration:line-through}
+#villagers li.gone .dot{background:#3a3d44!important;box-shadow:none}
+
+.stat{display:flex;justify-content:space-between;align-items:baseline;font-size:12px;padding:3px 0}
+.stat b{font-weight:600}
+.stat.danger b{color:var(--bad)}
+#phase{font-size:12px;color:var(--accent);margin-top:6px;min-height:1.3em}
+
+#result{position:fixed;inset:0;display:none;place-items:center;background:rgba(10,11,14,.72);z-index:15;backdrop-filter:blur(3px)}
+#result.show{display:grid}
+#result .card{width:min(420px,calc(100vw - 32px));background:var(--panel);border:1px solid var(--panel-border);border-radius:16px;padding:22px 24px;box-shadow:0 20px 60px rgba(0,0,0,.5);text-align:center}
+#result h2{margin:0 0 6px;font-size:22px}
+#result.won h2{color:var(--good)}
+#result.lost h2{color:var(--bad)}
+#result p{margin:0 0 16px;color:var(--muted);font-size:13px}
+#result .row{justify-content:center}
+
+#levels{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+#levels a{font-size:12px;color:var(--text);text-decoration:none;border:1px solid var(--panel-border);border-radius:999px;padding:3px 10px;background:rgba(255,255,255,.04)}
+#levels a:hover{background:var(--hover)}
+#levels a[aria-current=page]{background:var(--active);border-color:var(--accent)}
+#levels a:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+#timer{height:4px;border-radius:2px;background:rgba(255,255,255,.08);overflow:hidden;margin-top:6px}
+#burnbar{height:4px;border-radius:2px;background:rgba(255,255,255,.08);overflow:hidden;margin-top:6px;position:relative}
+#burnbar>div{height:100%;width:0;background:var(--warn);transition:width .3s}
+#burnbar::after{content:"";position:absolute;top:-2px;bottom:-2px;width:2px;background:var(--text);left:var(--goal,97%)}
+#timer>div{height:100%;width:0;background:var(--good);transition:width .3s}
+#replay{position:fixed;left:50%;bottom:16px;transform:translateX(-50%);width:min(620px,calc(100vw - 32px));padding:10px 14px;display:none;z-index:7}
+#replay.show{display:block}
+#replay .bar{display:flex;align-items:center;gap:10px}
+#replay .bar input[type=range]{flex:1}
+#replay select{font:inherit;color:var(--text);background:rgba(0,0,0,.25);border:1px solid var(--panel-border);border-radius:var(--radius);padding:6px 8px}
+#replay .time{font-variant-numeric:tabular-nums;color:var(--muted);font-size:12px;min-width:92px;text-align:right}
+#replay .title{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.6px}
+#toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%) translateY(20px);background:var(--panel);border:1px solid var(--panel-border);border-radius:var(--radius);padding:8px 14px;opacity:0;transition:all .25s;z-index:6;pointer-events:none}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+@media (max-width:820px){#brief{width:auto;right:12px;max-height:40vh}#hud{top:auto;bottom:12px;left:12px;right:12px;width:auto;max-height:46vh}}
+/* race mode: half a screen each, so a slim panel on each side and the view in between */
+body.race #brief{right:auto;width:min(240px,calc(100vw - 280px))}
+body.race #hud{top:12px;bottom:auto;left:auto;right:12px;width:230px;max-height:calc(100vh - 70px)}
+.sound-row{display:flex;align-items:center;gap:8px}.sound-row .sound-btn{display:inline-flex;align-items:center;justify-content:center;padding:6px 9px}.sound-row .sound-btn[aria-pressed="true"]{color:var(--muted)}.sound-row .sound-volume{flex:1}
+</style>
+</head>
+<body>
+<canvas id="canvas" tabindex="-1" oncontextmenu="event.preventDefault()"></canvas>
+
+<div id="overlay"><h1>Play</h1><div id="bar"><div></div></div><div id="status">Downloading…</div></div>
+
+<aside class="panel" id="brief" aria-label="Mission briefing">
+  <header>
+    <h1><a href="./" title="Back to the home page">← Home</a> Play</h1>
+    <button class="icon-btn" id="brief-collapse" title="Hide briefing" aria-expanded="true">–</button>
+  </header>
+  <div class="sub" id="level-sub"></div>
+  <nav id="levels" aria-label="Levels"></nav>
+  <p id="other-game" style="margin:6px 0 0;font-size:12px"></p>
+  <p id="race-link" style="margin:4px 0 0;font-size:12px;font-weight:600"></p>
+  <h2 id="level-name"></h2>
+  <p id="level-brief"></p>
+  <div id="goal"><b>Goal</b><span id="level-goal"></span></div>
+  <div class="section" id="villagers-box">
+    <div class="label"><b id="villagers-title" style="font-weight:inherit">Villagers</b> <span id="villagers-count"></span></div>
+    <ul id="villagers"></ul>
+  </div>
+  <div class="section">
+    <details id="hints">
+      <summary>Hints</summary>
+      <ul id="hint-list"></ul>
+    </details>
+  </div>
+  <div class="section">
+    <details>
+      <summary>Controls</summary>
+      <dl>
+        <dt>Left-drag</dt><dd>Look around</dd>
+        <dt>Right-drag</dt><dd>Pan</dd>
+        <dt><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd></dt><dd>Move</dd>
+        <dt><kbd>Space</kbd> / <kbd>Shift</kbd></dt><dd>Up / down</dd>
+        <dt>Scroll</dt><dd>Cursor box nearer / further</dd>
+        <dt><kbd>F</kbd></dt><dd>Place, and spend one placement</dd>
+        <dt><kbd>1</kbd>–<kbd>5</kbd></dt><dd>Pick a material</dd>
+        <dt><kbd>[</kbd> <kbd>]</kbd></dt><dd>Brush size</dd>
+        <dt><kbd>P</kbd></dt><dd>Pause / resume</dd>
+        <dt><kbd>C</kbd></dt><dd>Show / hide cursor box</dd>
+      </dl>
+    </details>
+  </div>
+</aside>
+
+<aside class="panel" id="hud" aria-label="Level controls">
+  <header>
+    <h1 id="kit-title">Kit</h1>
+    <button class="icon-btn" id="hud-collapse" title="Hide panel" aria-expanded="true">–</button>
+  </header>
+
+  <div class="section">
+    <div class="label">Material</div>
+    <div id="materials"></div>
+  </div>
+
+  <div class="section" id="spawner-box">
+    <label class="switch"><span>Place spawners</span><input id="spawner" type="checkbox"></label>
+    <div class="hint">A spawner keeps emitting its material every tick, so one water spawner floods a whole strip.</div>
+  </div>
+
+  <div class="section">
+    <div class="label">Brush size <span id="brush-value">1</span></div>
+    <input id="brush" type="range" min="1" max="5" value="2" aria-label="Brush size">
+  </div>
+
+  <div class="section">
+    <div class="stat"><span>Placements left</span><b id="left">–</b></div>
+    <div class="stat"><span id="hazard-label">Fire blocks</span><b id="fire">–</b></div>
+    <div class="stat" id="alive-row"><span id="alive-label">Villagers alive</span><b id="alive">–</b></div>
+    <div id="burn-box" hidden>
+      <div class="stat"><span id="burn-label">World burned</span><b id="burned">–</b></div>
+      <div id="burnbar" role="progressbar" aria-label="World burned" aria-valuemin="0" aria-valuemax="100"><div></div></div>
+    </div>
+    <div id="timer-box" hidden>
+      <div class="stat"><span>Hold out</span><b id="timer-left">–</b></div>
+      <div id="timer" role="progressbar" aria-label="Time held" aria-valuemin="0" aria-valuemax="100"><div></div></div>
+    </div>
+    <div id="phase"></div>
+  </div>
+
+  <div class="section">
+    <div class="label">Sound <span class="hint">M to mute</span></div>
+    <div class="sound-row" id="sound-control"></div>
+  </div>
+
+  <div class="section row">
+    <button class="primary" id="start">Start</button>
+    <button id="restart" title="Put the level back to the beginning">Restart</button>
+  </div>
+  <div class="section" id="complete-box" hidden>
+    <button class="primary" id="complete" style="width:100%">Complete level</button>
+    <div class="hint">The fire is out, or nearly out. Finish the level and count who survived.</div>
+  </div>
+</aside>
+
+<div id="result" role="dialog" aria-modal="true" aria-labelledby="result-title">
+  <div class="card">
+    <h2 id="result-title"></h2>
+    <p id="result-text"></p>
+    <div class="row">
+      <button class="primary" id="again">Try again</button>
+      <button id="next" hidden>Next level</button>
+      <button id="sandbox">Open in sandbox</button>
+    </div>
+    <div class="row" style="margin-top:8px">
+      <button id="watch">Watch replay</button>
+    </div>
+  </div>
+</div>
+
+<div class="panel" id="replay" role="region" aria-label="Replay">
+  <div class="title"><span>Replay</span><button id="replay-exit">Exit replay</button></div>
+  <div class="bar">
+    <button class="icon-btn" id="replay-start" title="Back to the start" aria-label="Back to the start">&#x23EE;</button>
+    <button class="icon-btn primary" id="replay-play" title="Play / pause" aria-label="Play">&#x25B6;</button>
+    <input type="range" id="replay-seek" min="0" max="0" value="0" aria-label="Replay position">
+    <span class="time" id="replay-time">0.0 / 0.0 s</span>
+    <select id="replay-speed" aria-label="Replay speed">
+      <option value="0.25">0.25&times;</option>
+      <option value="0.5">0.5&times;</option>
+      <option value="1" selected>1&times;</option>
+      <option value="2">2&times;</option>
+      <option value="4">4&times;</option>
+    </select>
+  </div>
+</div>
+
+<div id="toast" role="status" aria-live="polite"></div>
+
+<script src="audio.js?v=d7451804e06d"></script>
+<script>
+"use strict";
+const BUILD_ID = "d7451804e06d";
+const $ = id => document.getElementById(id);
+if (window.GameAudio) GameAudio.mountControl($("sound-control"), true);
+const versioned = u => BUILD_ID.startsWith("__") ? u : u + "?v=" + BUILD_ID;
+
+// Material id of wood as the sim stores it in a world file (src/cell_types.h).
+// What counts as the hazard (fire, lava) comes from each level in levels.json.
+const WOOD = 8;
+
+// Only these are offered in Play mode; the sandbox has the full set.
+const MATERIALS = {
+  fire:   {label: "Fire",   color: "rgb(228,45,2)"},
+  sand:   {label: "Sand",   color: "rgb(238,208,162)"},
+  water:  {label: "Water",  color: "rgba(37,125,255,.85)"},
+  snow:   {label: "Snow",   color: "rgb(252,252,252)"},
+  stone:  {label: "Stone",  color: "rgb(135,140,140)"},
+  wood:   {label: "Wood",   color: "rgb(132,94,56)"},
+  delete: {label: "Delete", color: "repeating-linear-gradient(45deg,#555 0 3px,#2a2a2a 3px 6px)"}
+};
+
+let ready = false, level = null, levelBytes = null;
+let phase = "loading";        // loading | planning | running | won | lost
+let placementsLeft = 0, selected = null, matButtons = {}, toastTimer = null;
+let lastScan = 0, scanning = false;
+let library = null, levelsText = null, ticks = 0;
+let levelStartTick = 0;      // engine tick when the level was (re)loaded
+
+const call = (fn, ret, types, args) => ready ? Module.ccall(fn, ret, types, args) : null;
+
+function toast(msg) {
+  const t = $("toast");
+  t.textContent = msg;
+  t.classList.add("show");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove("show"), 2400);
+}
+
+/* ---------------------------------------------------------------- loading */
+
+const isGzip = b => b.length > 2 && b[0] === 31 && b[1] === 139;
+
+async function gunzip(bytes) {
+  const stream = new Blob([bytes]).stream().pipeThrough(new DecompressionStream("gzip"));
+  return new Uint8Array(await new Response(stream).arrayBuffer());
+}
+
+async function fetchBytes(url) {
+  const r = await fetch(url);
+  if (!r.ok) throw new Error(url + ": HTTP " + r.status);
+  const b = new Uint8Array(await r.arrayBuffer());
+  return isGzip(b) ? gunzip(b) : b;
+}
+
+const levelReady = (async () => {
+  // levels.json is fetched without a version tag so it revalidates normally;
+  // each world file is then fetched with the hash the manifest carries, which
+  // changes whenever the level is rebuilt.
+  const r = await fetch("levels/levels.json");
+  if (!r.ok) throw new Error("levels.json: HTTP " + r.status);
+  levelsText = await r.text();
+  library = JSON.parse(levelsText);
+  const wanted = new URLSearchParams(location.search).get("level");
+  const lvl = library.levels.find(l => l.id === wanted) || library.levels[0];
+  return {level: lvl, bytes: await fetchBytes("levels/" + lvl.file + "?v=" + lvl.hash)};
+})();
+
+/* ------------------------------------------------- reading the live world */
+
+function showVillagers(burned) {
+  const list = $("villagers");
+  list.innerHTML = "";
+  let alive = 0;
+  level.villagers.forEach((v, i) => {
+    const gone = burned && burned[i] > 0;
+    if (!gone) alive++;
+    const li = document.createElement("li");
+    li.className = gone ? "gone" : "";
+    li.innerHTML = '<span class="dot" style="background:' + v.color + '"></span>' +
+                   "<span>" + (v.label || "The villager " + v.name) + "</span>";
+    list.appendChild(li);
+  });
+  $("villagers-count").textContent = alive + " of " + level.villagers.length;
+  $("alive").textContent = alive + " / " + level.villagers.length;
+  $("alive").parentElement.classList.toggle("danger", alive < level.villagers.length);
+  return alive;
+}
+
+function setPhase(next, note) {
+  if (window.GameAudio && next === "running" && phase === "planning") GameAudio.cue("start");
+  phase = next;
+  $("phase").textContent = note || "";
+  const start = $("start");
+  start.disabled = next !== "planning" || raceLocked;
+  start.textContent = next === "planning" ? level.labels.start
+                    : next === "running" ? "Running…"
+                    : "Level over";
+}
+
+function finish(won, text) {
+  racePost({type: "done", won, ms: performance.now() - raceT0, text});
+  recordFrame(true);
+  setPhase(won ? "won" : "lost");
+  if (window.GameAudio) GameAudio.cue(won ? "win" : "lose");
+  call("ca_set_paused", null, ["number"], [1]);
+  const box = $("result");
+  box.className = "show " + (won ? "won" : "lost");
+  $("result-title").textContent = won ? level.labels.won : level.labels.lost;
+  const next = won && library.levels[library.levels.indexOf(level) + 1];
+  $("next").hidden = !next || next.game !== level.game;
+  if (next) $("next").onclick = () => { location.href = "play-v2.html?level=" + encodeURIComponent(next.id); };
+  $("result-text").textContent = text;
+  $("again").focus();
+}
+
+// Judged by the shared C++ judge (src/level_eval.cpp in the source repo), the
+// same code the headless benchmark uses, so a level is won or lost the same way
+// in the browser and in Python. This page only words the result.
+function tickState() {
+  if (phase !== "running" || scanning) return;
+  const now = performance.now();
+  if (now - lastScan < 250) return;
+  scanning = true;
+  try {
+    const state = call("ca_level_check", "number", [], []);
+    lastScan = performance.now();
+    if (state < 0) return;
+    const fire = call("ca_level_hazard", "number", [], []);
+    $("fire").textContent = fire;
+    $("fire").parentElement.classList.toggle("danger", fire > 0);
+    const burned = level.villagers.map((_, i) => call("ca_level_villager", "number", ["number"], [i]) ? 0 : 1);
+    showVillagers(burned);
+    const used = level.placements - placementsLeft;
+
+    if (level.win.type === "fill") {
+      const filled = call("ca_level_measure", "number", [], []);
+      showBurned(filled / level.win.target);
+      if (state === 1) {
+        finish(true, "Water is running into the village pool: " + filled + " cells and rising. " +
+                     "You used " + used + " of " + level.placements + " blocks.");
+      }
+      return;
+    }
+    if (level.win.type === "destroy") {
+      const done = call("ca_level_measure", "number", [], []);
+      const unit = level.unit || ["fire", "fires"];          // what a placement is called
+      showBurned(done);
+      if (state === 1) {
+        finish(true, "The whole world went up in smoke: " + Math.floor(done * 100) +
+                     "% burned, using " + used + " of " + level.placements + " " + unit[1] + ".");
+      } else if (state === 2) {
+        finish(false, "The fire went out with " + Math.floor(done * 100) + "% of the world burned, short of " +
+                      Math.round(level.win.target * 100) + "%. " +
+                      ((level.messages && level.messages.lost) ||
+                       "Fire cannot cross bare stone: look at which islands are linked."));
+      } else if (fire === 0) {
+        $("phase").textContent = "The fire is out. You still have " + placementsLeft + " " +
+                                 (placementsLeft === 1 ? unit[0] : unit[1]) + " to place.";
+      }
+      return;
+    }
+
+    if (state === 2) {
+      const lost = burned.filter(b => b).length;
+      const msg = (level.messages && level.messages.lost) || "Try again.";
+      finish(false, level.villagers.length === 1 ? msg
+        : (lost === 1 ? "One villager was lost. " : lost + " villagers were lost. ") + msg);
+    } else if (state === 1) {
+      if (level.win.type === "survive" && call("ca_level_ticks", "number", [], []) >= level.win.ticks) {
+        finish(true, ((level.messages && level.messages.won) || "Everyone made it.") +
+                     " You held out for all " + level.win.ticks + " ticks.");
+      } else {
+        finish(true, completeText());      // the hazard died out early
+      }
+    } else if (call("ca_level_seen_hazard", "number", [], []) && fire <= COMPLETE_AT) {
+      // A few stray hazard cells can flicker for a while after the front has
+      // died out, so let the player call it once there are almost none left.
+      $("complete-box").hidden = false;
+    }
+  } catch (err) {
+    console.error(err);
+  } finally {
+    scanning = false;
+  }
+}
+
+const COMPLETE_AT = 5;          // hazard blocks left at which Complete appears
+
+function completeText() {
+  const what = level.hazard.label.replace(/ blocks?$/i, "").toLowerCase();
+  const who = level.villagers.length === 1 ? "the village is still standing"
+            : "all " + level.villagers.length + " villagers are still standing";
+  return "The " + what + " died out early and " + who + ". You used " +
+         (level.placements - placementsLeft) + " of " + level.placements + " placements.";
+}
+
+function completeLevel() {
+  if (phase !== "running") return;
+  // The judge decides: it accepts only with every villager intact and the hazard nearly gone
+  if (!call("ca_level_complete", "number", ["number"], [COMPLETE_AT])) return;
+  finish(true, completeText());
+}
+
+/* ------------------------------------------------------------------ race */
+
+// race.html shows two of these pages side by side: ?race=you for the player and
+// ?race=solver for the Solver. The Solver is not an AI: it knows the level's
+// answer (level.solution in levels.json) and plays it out slowly, gliding the
+// camera to each spot, pausing to "think", then placing the block, just as a
+// player would with F. Both sides stay locked until race.html sends "go".
+const RACE = new URLSearchParams(location.search).get("race");   // "you" | "solver" | null
+let raceLocked = RACE === "you" || RACE === "solver", raceT0 = 0, solverCam = null;
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+function racePost(msg) {
+  if (RACE && parent !== window) parent.postMessage(Object.assign({race: RACE}, msg), location.origin);
+}
+
+function setupRace() {
+  document.body.classList.add("race");
+  $("brief-collapse").click();                        // half a screen: give the view the room
+  document.querySelectorAll("#brief a").forEach(a => { a.target = "_top"; });
+  for (const id of ["levels", "other-game", "race-link"]) $(id).hidden = true;
+  for (const id of ["next", "sandbox"]) $(id).style.display = "none";
+  $("phase").textContent = RACE === "solver" ? "The Solver is waiting for the start." : "Waiting for the start…";
+  setPhase("planning", $("phase").textContent);
+  racePost({type: "ready", solvable: !!level.solution, name: level.name});
+}
+
+window.addEventListener("message", e => {
+  if (!RACE || e.origin !== location.origin || !e.data || e.data.type !== "go") return;
+  raceLocked = false;
+  raceT0 = performance.now();
+  setPhase("planning", level.labels.planning);
+  if (RACE === "solver") runSolver(Number(e.data.pace) || 1);
+  else $("canvas").focus();
+});
+
+async function glide(eye, look, ms) {
+  const from = solverCam || {eye: level.camera.eye, look: level.camera.look};
+  const t0 = performance.now();
+  for (;;) {
+    const k = Math.min(1, (performance.now() - t0) / ms), s = k * k * (3 - 2 * k);
+    const mix = (a, b) => a.map((v, i) => v + (b[i] - v) * s);
+    call("ca_place_camera", null, Array(6).fill("number"), [...mix(from.eye, eye), ...mix(from.look, look)]);
+    if (k >= 1) break;
+    await new Promise(r => requestAnimationFrame(r));
+  }
+  solverCam = {eye, look};
+}
+
+function pressKey(key, code, keyCode) {
+  for (const type of ["keydown", "keyup"]) {
+    window.dispatchEvent(new KeyboardEvent(type, {key, code, keyCode, which: keyCode, bubbles: true}));
+  }
+}
+const pressF = () => pressKey("f", "KeyF", 70);
+
+async function runSolver(pace) {
+  const steps = level.solution || [];
+  const say = t => { if (phase === "planning") $("phase").textContent = t; };
+  pressKey("c", "KeyC", 67);                // the Solver aims without the red cursor
+  say("Solver: studying the level…");
+  await sleep(3500 * pace);
+  for (const [i, step] of steps.entries()) {
+    if (phase !== "planning") return;
+    const [x, y, z] = step.at.map(v => v + 0.5);
+    say("Solver: looking for spot " + (i + 1) + " of " + steps.length + "…");
+    await glide([x, y + 4, z - 3], [x, y, z], 2800 * pace);       // the look block is 5 ahead
+    say("Solver: thinking…");
+    await sleep(2400 * pace);
+    selectMaterial(step.material);
+    setBrush(step.brush);
+    pressF();
+    say("Solver: placed " + (i + 1) + " of " + steps.length + ".");
+    await sleep(1000 * pace);
+  }
+  await glide(level.camera.eye, level.camera.look, 2200 * pace);
+  await sleep(800 * pace);
+  startFire();
+}
+
+/* ------------------------------------------------------------ recording */
+
+// While a level runs, a gzipped snapshot of the world is kept about three times
+// a second, so the run can be replayed afterwards at any speed. Snapshots go
+// through ca_save like the scoring scan does; if a run gets long, every other
+// frame is dropped so memory stays bounded.
+const REC_EVERY_MS = 330, REC_MAX = 480;
+let frames = [], recEvery = REC_EVERY_MS, lastRec = 0, recording = false, recBusy = false;
+
+async function gzip(bytes) {
+  return new Uint8Array(await new Response(
+    new Blob([bytes]).stream().pipeThrough(new CompressionStream("gzip"))).arrayBuffer());
+}
+
+async function recordFrame(force) {
+  if (recBusy || (!force && (phase !== "running" || call("ca_is_paused", "number", [], [])))) return;
+  const now = performance.now();
+  if (!force && now - lastRec < recEvery) return;
+  recBusy = true;
+  try {
+    lastRec = now;
+    call("ca_save", null, ["string"], ["rec.demo"]);
+    const gz = await gzip(FS.readFile("/out/rec.demo"));
+    frames.push(gz);
+    if (frames.length > REC_MAX) {          // keep every other frame, record half as often
+      frames = frames.filter((_, i) => i % 2 === 0);
+      recEvery *= 2;
+    }
+  } catch (err) {
+    console.error(err);
+  } finally {
+    recBusy = false;
+  }
+}
+
+function resetRecording() {
+  frames = [];
+  recEvery = REC_EVERY_MS;
+  lastRec = 0;
+}
+
+/* --------------------------------------------------------------- replay */
+
+let replayIdx = 0, replayTimer = null, replayPlaying = false, finalFrame = null, resultClass = "";
+
+async function showFrame(i) {
+  replayIdx = Math.max(0, Math.min(frames.length - 1, i));
+  FS.writeFile("/out/replay.demo", await gunzip(frames[replayIdx]));
+  call("ca_load", "number", ["string"], ["replay.demo"]);
+  $("replay-seek").value = replayIdx;
+  const secs = s => (s * recEvery / 1000).toFixed(1);
+  $("replay-time").textContent = secs(replayIdx) + " / " + secs(frames.length - 1) + " s";
+}
+
+function setReplayPlaying(on) {
+  replayPlaying = on;
+  $("replay-play").innerHTML = on ? "&#x23F8;" : "&#x25B6;";
+  $("replay-play").setAttribute("aria-label", on ? "Pause" : "Play");
+  clearTimeout(replayTimer);
+  if (on) stepReplay();
+}
+
+async function stepReplay() {
+  if (!replayPlaying) return;
+  if (replayIdx >= frames.length - 1) { setReplayPlaying(false); return; }
+  const started = performance.now();
+  await showFrame(replayIdx + 1);
+  const wait = recEvery / Number($("replay-speed").value) - (performance.now() - started);
+  replayTimer = setTimeout(stepReplay, Math.max(0, wait));
+}
+
+async function enterReplay() {
+  if (frames.length < 2) { toast("This run was too short to replay"); return; }
+  call("ca_set_paused", null, ["number"], [1]);
+  call("ca_save", null, ["string"], ["final.demo"]);
+  finalFrame = FS.readFile("/out/final.demo");
+  resultClass = $("result").className;
+  $("result").className = "";
+  phase = "replay";
+  $("replay-seek").max = frames.length - 1;
+  $("replay").classList.add("show");
+  await showFrame(0);
+  setReplayPlaying(true);
+}
+
+function exitReplay() {
+  setReplayPlaying(false);
+  FS.writeFile("/out/replay.demo", finalFrame);
+  call("ca_load", "number", ["string"], ["replay.demo"]);
+  $("replay").classList.remove("show");
+  phase = resultClass.includes("won") ? "won" : "lost";
+  $("result").className = resultClass;
+  $("watch").focus();
+}
+
+function loadLevelWorld(message) {
+  // The level file is already in the in-memory filesystem, so a restart is
+  // just a reload of it.
+  if (!call("ca_load", "number", ["string"], ["begin.demo"])) {
+    toast("Could not load the level");
+    return;
+  }
+  call("ca_place_camera", null, Array(6).fill("number"),
+       [...level.camera.eye, ...level.camera.look]);
+  call("ca_set_paused", null, ["number"], [1]);
+  placementsLeft = level.placements;
+  ticks = 0;
+  levelStartTick = call("ca_sim_ticks", "number", [], []);
+  if (!call("ca_level_start", "number", ["string", "string"], [levelsText, level.id])) {
+    console.error("Level judge:", call("ca_level_reason", "string", [], []));
+  }
+  // Destroy levels with fire in the kit: the fire going out isn't a loss while
+  // the player still has fires to place (spendPlacement turns it back on)
+  call("ca_level_set_fire_out_loses", null, ["number"],
+       [level.win.type === "destroy" && level.materials.includes("fire") && level.placements > 0 ? 0 : 1]);
+  updateTimer();
+  if (level.win.type === "destroy" || level.win.type === "fill") showBurned(0);
+  resetRecording();
+  $("left").textContent = placementsLeft;
+  $("fire").textContent = "–";
+  showVillagers(null);
+  $("result").className = "";
+  $("complete-box").hidden = true;
+  setPhase("planning", level.labels.planning);
+  if (message) toast(message);
+}
+
+/* --------------------------------------------------------------- controls */
+
+function selectMaterial(id) {
+  if (!call("ca_set_material", "number", ["string"], [id])) return;
+  selected = id;
+  if (window.GameAudio) GameAudio.cue("select");
+  for (const [key, btn] of Object.entries(matButtons)) {
+    btn.setAttribute("aria-pressed", String(key === id));
+  }
+}
+
+function setBrush(n) {
+  n = Math.max(1, Math.min(level ? level.max_brush : 5, n));
+  $("brush").value = n;
+  $("brush-value").textContent = n;
+  call("ca_set_brush", null, ["number"], [n]);
+}
+
+function buildPalette() {
+  const box = $("materials");
+  box.innerHTML = "";
+  matButtons = {};
+  level.materials.forEach((id, i) => {
+    const m = MATERIALS[id];
+    if (!m) return;
+    const btn = document.createElement("button");
+    btn.className = "mat";
+    btn.setAttribute("aria-pressed", "false");
+    btn.title = m.label + " (" + (i + 1) + ")";
+    btn.innerHTML = '<span class="swatch" style="background:' + m.color + '"></span>' +
+                    m.label + '<span class="key">' + (i + 1) + "</span>";
+    btn.addEventListener("click", () => { selectMaterial(id); btn.blur(); });
+    box.appendChild(btn);
+    matButtons[id] = btn;
+  });
+}
+
+function startFire() {
+  if (phase !== "planning") return;
+  recordFrame(true);                        // the scene as the player set it up
+  call("ca_set_paused", null, ["number"], [0]);
+  lastScan = performance.now();
+  setPhase("running", level.labels.running);
+}
+
+// The sim steps once per animation frame while it is unpaused, so counting
+// frames counts simulation ticks: a "survive" level lasts the same number of
+// steps on a fast or a slow computer.
+function countTick() {
+  if (phase === "running" && level.win.type === "survive") {
+    ticks = call("ca_sim_ticks", "number", [], []) - levelStartTick;
+    updateTimer();
+  }
+  requestAnimationFrame(countTick);
+}
+
+function showBurned(done) {
+  const pct = Math.max(0, Math.min(100, Math.floor(done * 100)));
+  $("burned").textContent = pct + "%";
+  $("burnbar").firstElementChild.style.width = pct + "%";
+  $("burnbar").setAttribute("aria-valuenow", String(pct));
+}
+
+function updateTimer() {
+  if (!level || level.win.type !== "survive") return;
+  const done = Math.min(1, ticks / level.win.ticks);
+  $("timer").firstElementChild.style.width = (100 * done) + "%";
+  $("timer").setAttribute("aria-valuenow", String(Math.round(100 * done)));
+  $("timer-left").textContent = Math.max(0, level.win.ticks - ticks) + " ticks";
+}
+
+function spendPlacement() {
+  if (placementsLeft <= 0) {
+    if (window.GameAudio) GameAudio.cue("denied");
+    toast("No placements left. Restart to try a different plan.");
+    return false;
+  }
+  placementsLeft--;
+  $("left").textContent = placementsLeft;
+  if (placementsLeft === 0) call("ca_level_set_fire_out_loses", null, ["number"], [1]);
+  if (placementsLeft === 0) toast("That was your last placement.");
+  return true;
+}
+
+// Keys the simulation itself acts on. Tab, Enter and Escape are deliberately
+// not in here, so the panels and the result dialog stay usable from the
+// keyboard even while the level is swallowing game keys.
+const SIM_KEYS = new Set(["w", "a", "s", "d", "q", "e", "f", "c", "l", "p", "b",
+  "t", "x", "[", "]", " ", "shift", "arrowup", "arrowdown", "arrowleft",
+  "arrowright", "0", "1", "2", "3", "4", "5", "6", "7", "8", "9"]);
+
+// Registered in the capture phase, and before sim.js loads, so it runs before
+// the simulation's own key handling and can keep Play mode to its own palette.
+window.addEventListener("keydown", e => {
+  if (!ready || e.ctrlKey || e.metaKey || e.altKey) return;
+  const block = () => { e.preventDefault(); e.stopImmediatePropagation(); };
+  const key = e.key.toLowerCase();
+  if (raceLocked && SIM_KEYS.has(key)) { block(); return; }   // race mode, before "Go"
+
+  // Once the level is decided, the world is frozen; ignore anything that would
+  // still drive the simulation.
+  if (phase === "replay") {
+    const MOVE = new Set(["w", "a", "s", "d", "q", "e", " ", "shift", "arrowup", "arrowdown", "arrowleft", "arrowright"]);
+    if (SIM_KEYS.has(key) && !MOVE.has(key)) block();
+    return;
+  }
+  if (phase === "won" || phase === "lost") {
+    if (SIM_KEYS.has(key)) block();
+    return;
+  }
+
+  if (key === "f") {
+    // Auto-repeat would place over and over while the key is held, which would
+    // make the placement budget meaningless. Movement keys still repeat.
+    if (e.repeat || !spendPlacement()) block();
+    return;
+  }
+  if (key >= "1" && key <= "9") {
+    block();
+    if (e.repeat) return;
+    const m = level.materials[Number(key) - 1];
+    if (m) selectMaterial(m);
+    return;
+  }
+  if (key === "[") { block(); setBrush(Number($("brush").value) - 1); return; }
+  if (key === "]") { block(); setBrush(Number($("brush").value) + 1); return; }
+  // Material keys the sandbox uses that Play mode does not offer.
+  if (key === "t" || key === "x" || key === "0" || key === "b") { block(); return; }
+}, true);
+
+window.addEventListener("keyup", e => {
+  if (ready && e.key.toLowerCase() === "p") syncPause();
+});
+
+// The sim handles P itself, so starting the fire that way has to count too.
+function syncPause() {
+  const paused = call("ca_is_paused", "number", [], []);
+  if (phase === "planning" && !paused) {
+    recordFrame(true);
+    lastScan = performance.now();
+    setPhase("running", level.labels.running);
+  } else if (phase === "running" && paused) {
+    $("phase").textContent = "Paused. Press P to carry on.";
+  } else if (phase === "running") {
+    $("phase").textContent = level.labels.running;
+  }
+}
+
+function collapser(panelId, buttonId) {
+  const panel = $(panelId), btn = $(buttonId);
+  btn.addEventListener("click", () => {
+    const hidden = panel.classList.toggle("collapsed");
+    btn.textContent = hidden ? "+" : "–";
+    btn.setAttribute("aria-expanded", String(!hidden));
+    btn.title = hidden ? "Show panel" : "Hide panel";
+    btn.blur();
+  });
+}
+
+$("start").addEventListener("click", () => { startFire(); $("start").blur(); });
+$("restart").addEventListener("click", () => loadLevelWorld("Level restarted"));
+$("watch").addEventListener("click", enterReplay);
+$("replay-exit").addEventListener("click", exitReplay);
+$("replay-play").addEventListener("click", () => { setReplayPlaying(!replayPlaying); $("replay-play").blur(); });
+$("replay-start").addEventListener("click", () => { setReplayPlaying(false); showFrame(0); $("replay-start").blur(); });
+$("replay-seek").addEventListener("input", e => { setReplayPlaying(false); showFrame(Number(e.target.value)); });
+$("replay-speed").addEventListener("change", e => e.target.blur());
+$("complete").addEventListener("click", () => { completeLevel(); $("complete").blur(); });
+$("again").addEventListener("click", () => loadLevelWorld("Level restarted"));
+// "Open in sandbox" carries the level over exactly as it is now (the scene you
+// just won or lost in): the world is saved, gzipped and passed to sim.html in
+// sessionStorage, which survives the navigation within this tab.
+async function openInSandbox() {
+  let url = "sim.html";
+  try {
+    call("ca_save", null, ["string"], ["handoff.demo"]);
+    const raw = FS.readFile("/out/handoff.demo");
+    const gz = new Uint8Array(await new Response(
+      new Blob([raw]).stream().pipeThrough(new CompressionStream("gzip"))).arrayBuffer());
+    let bin = "";
+    for (let i = 0; i < gz.length; i += 0x8000) bin += String.fromCharCode.apply(null, gz.subarray(i, i + 0x8000));
+    sessionStorage.setItem("ca-play-handoff", JSON.stringify({
+      name: level.name, camera: level.camera, data: btoa(bin)
+    }));
+    url = "sim.html?from=play";
+  } catch (err) {
+    console.error(err);
+    toast("Could not carry the level over, opening the sandbox");
+  }
+  location.href = url;
+}
+$("sandbox").addEventListener("click", openInSandbox);
+$("spawner").addEventListener("change", e =>
+  call("ca_set_spawner", null, ["number"], [e.target.checked ? 1 : 0]));
+$("brush").addEventListener("input", e => setBrush(Number(e.target.value)));
+collapser("brief", "brief-collapse");
+collapser("hud", "hud-collapse");
+
+/* ------------------------------------------------------- emscripten setup */
+
+const overlay = $("overlay"), statusEl = $("status"), barEl = $("bar").firstElementChild;
+
+function showError(msg) {
+  overlay.classList.remove("hidden");
+  overlay.classList.add("error");
+  statusEl.textContent = msg;
+}
+
+var Module = {
+  canvas: $("canvas"),
+  print: (...a) => console.log(...a),
+  printErr: (...a) => console.warn(...a),
+  locateFile: path => BUILD_ID.startsWith("__") ? path : path + "?v=" + BUILD_ID,
+  setStatus(text) {
+    const m = text.match(/([^(]+)\((\d+(\.\d+)?)\/(\d+)\)/);
+    if (m) {
+      statusEl.textContent = m[1].trim();
+      barEl.style.width = 100 * m[2] / m[4] + "%";
+    } else if (text) {
+      statusEl.textContent = text;
+    }
+  },
+  preRun: [() => {
+    Module.addRunDependency("level");
+    levelReady.then(({level: lvl, bytes}) => {
+      level = lvl;
+      levelBytes = bytes;
+      try { FS.mkdir("/out"); } catch (e) { /* already there */ }
+      FS.writeFile("/out/begin.demo", bytes);
+      Module.removeRunDependency("level");
+    }).catch(err => {
+      console.error(err);
+      showError("Could not download the level. Check your connection and reload the page.");
+    });
+  }],
+  totalDependencies: 0,
+  monitorRunDependencies(left) {
+    this.totalDependencies = Math.max(this.totalDependencies, left);
+    Module.setStatus(left ? "Loading the level…" : "Starting…");
+  },
+  onRuntimeInitialized() {
+    ready = true;
+    if (window.GameAudio) GameAudio.attach(Module);
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      overlay.classList.add("hidden");
+      $("level-sub").textContent = level.subtitle;
+      $("level-name").textContent = level.name;
+      $("level-brief").textContent = level.brief;
+      $("level-goal").textContent = level.goal;
+      $("hint-list").innerHTML = level.hints.map(h => "<li>" + h + "</li>").join("");
+      document.title = level.name + " · Play (v2)";
+      $("brush").max = level.max_brush;
+      $("kit-title").textContent = level.labels.kit;
+      $("hazard-label").textContent = level.hazard.label;
+      const meter = level.win.type === "destroy" || level.win.type === "fill";
+      $("villagers-box").hidden = level.villagers.length === 0;
+      $("alive-row").hidden = level.villagers.length === 0;
+      $("burn-box").hidden = !meter;
+      $("burn-label").textContent = level.win.label || "World burned";
+      if (level.win.type === "destroy") $("burnbar").style.setProperty("--goal", Math.round(level.win.target * 100) + "%");
+      if (level.win.type === "fill") $("burnbar").style.setProperty("--goal", "100%");
+      const GAMES = {save: "Save the Villagers", destroy: "Destroy the World", build: "Build a Path"};
+      const others = [...new Set(library.levels.map(l => l.game))].filter(g => g !== level.game);
+      $("other-game").innerHTML = others.length
+        ? "Other games: " + others.map(g => {
+            const first = library.levels.find(l => l.game === g);
+            return '<a href="play-v2.html?level=' + encodeURIComponent(first.id) + '" style="color:var(--accent)">' + GAMES[g] + "</a>";
+          }).join(" · ")
+        : "";
+      const single = level.villagers.length === 1;
+      $("villagers-title").textContent = single ? "Village" : "Villagers";
+      $("alive-label").textContent = single ? "Village standing" : "Villagers alive";
+      $("timer-box").hidden = level.win.type !== "survive";
+      // Spawners keep adding material, so a level can switch them off
+      $("spawner-box").hidden = level.spawners === false;
+      $("levels").innerHTML = library.levels
+        .filter(l => l.game === level.game)
+        .map((l, i) => '<a href="play-v2.html?level=' + encodeURIComponent(l.id) + '"' +
+                       (l === level ? ' aria-current="page"' : "") + ">" + (i + 1) + ". " + l.name + "</a>")
+        .join("");
+      buildPalette();
+      loadLevelWorld();
+      selectMaterial(level.materials[0]);
+      setBrush(level.brush || Math.min(2, level.max_brush));
+      if (RACE) setupRace();
+      else if (level.solution) $("race-link").innerHTML =
+        '<a href="race.html?level=' + encodeURIComponent(level.id) + '" style="color:var(--accent)">Race the Solver &rarr;</a>';
+      requestAnimationFrame(countTick);
+      $("canvas").focus();
+      setInterval(tickState, 200);
+      setInterval(recordFrame, 110);
+    }));
+  }
+};
+
+Module.setStatus("Downloading…");
+window.addEventListener("error", () => showError("Something went wrong. Details are in the browser console."));
+$("canvas").addEventListener("webglcontextlost", e => {
+  e.preventDefault();
+  showError("The graphics context was lost. Reload the page to continue.");
+});
+if (!document.createElement("canvas").getContext("webgl2")) {
+  showError("This page needs WebGL 2, which your browser does not support.");
+}
+</script>
+<script async src="sim.js?v=d7451804e06d"></script>
+</body>
+</html>

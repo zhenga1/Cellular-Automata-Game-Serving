@@ -243,10 +243,10 @@ body.race #hud{top:12px;bottom:auto;left:auto;right:12px;width:230px;max-height:
 
 <div id="toast" role="status" aria-live="polite"></div>
 
-<script src="audio.js?v=2c6f902f8faf"></script>
+<script src="audio.js?v=d7451804e06d"></script>
 <script>
 "use strict";
-const BUILD_ID = "2c6f902f8faf";
+const BUILD_ID = "d7451804e06d";
 const $ = id => document.getElementById(id);
 if (window.GameAudio) GameAudio.mountControl($("sound-control"), true);
 const versioned = u => BUILD_ID.startsWith("__") ? u : u + "?v=" + BUILD_ID;
@@ -1017,6 +1017,6 @@ if (!document.createElement("canvas").getContext("webgl2")) {
   showError("This page needs WebGL 2, which your browser does not support.");
 }
 </script>
-<script async src="sim.js?v=2c6f902f8faf"></script>
+<script async src="sim.js?v=d7451804e06d"></script>
 </body>
 </html>
