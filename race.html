@@ -5,9 +5,17 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Race the Solver · Play</title>
 <meta name="description" content="Play a level side by side with the Solver, which knows the answer but takes its time.">
+<meta name="color-scheme" content="light dark">
+<script src="mode.js"></script>
 <style>
-:root{--bg:#15171c;--panel:rgba(22,24,30,.92);--border:rgba(255,255,255,.08);--text:#e8e9ec;--muted:#9095a1;
-      --accent:#7cc4ff;--good:#7fe0a6;--bad:#ff8a80;--solver:#ffc46b}
+:root{--bg:#eef1f5;--panel:rgba(255,255,255,.94);--border:rgba(20,30,45,.12);--text:#1b2029;--muted:#5b6372;
+      --accent:#1d6fd0;--on-accent:#fff;--good:#1e8a4c;--bad:#c62828;--solver:#a86a00;--control:#fff;--divider:#c9d2dd;
+      --tag-bg:rgba(255,255,255,.85);--count:#1b2029;--count-shadow:rgba(255,255,255,.7);--shadow-strong:rgba(20,30,45,.24);
+      color-scheme:light}
+:root[data-mode=dark]{--bg:#15171c;--panel:rgba(22,24,30,.92);--border:rgba(255,255,255,.08);--text:#e8e9ec;--muted:#9095a1;
+      --accent:#7cc4ff;--on-accent:#0d0f14;--good:#7fe0a6;--bad:#ff8a80;--solver:#ffc46b;--control:#22252d;--divider:#000;
+      --tag-bg:rgba(10,11,14,.75);--count:#fff;--count-shadow:rgba(0,0,0,.6);--shadow-strong:rgba(0,0,0,.5);color-scheme:dark}
+.mode-btn{display:inline-grid;place-items:center;padding:6px 8px}
 *{box-sizing:border-box}
 [hidden]{display:none!important}
 html,body{margin:0;height:100%;overflow:hidden;background:var(--bg);color:var(--text);
@@ -28,26 +36,26 @@ header h1 .vs{color:var(--muted);font-weight:500}
 #clock-you.done{color:var(--good)}
 #clock-solver.done{color:var(--solver)}
 label.pace{color:var(--muted);display:flex;align-items:center;gap:6px;white-space:nowrap}
-select,button{font:inherit;color:var(--text);background:#22252d;border:1px solid var(--border);border-radius:8px;padding:7px 10px}
+select,button{font:inherit;color:var(--text);background:var(--control);border:1px solid var(--border);border-radius:8px;padding:7px 10px}
 button{cursor:pointer;font-weight:600}
-button.go{background:var(--accent);color:#0d0f14;border-color:transparent;padding:8px 18px;font-size:14px}
+button.go{background:var(--accent);color:var(--on-accent);border-color:transparent;padding:8px 18px;font-size:14px}
 button:disabled{opacity:.5;cursor:default}
-.arena{position:absolute;top:56px;left:0;right:0;bottom:0;display:grid;grid-template-columns:1fr 1fr;gap:2px;background:#000}
+.arena{position:absolute;top:56px;left:0;right:0;bottom:0;display:grid;grid-template-columns:1fr 1fr;gap:2px;background:var(--divider)}
 .side{position:relative;min-width:0;min-height:0}
 .side iframe{position:absolute;inset:0;width:100%;height:100%;border:0;display:block;background:var(--bg)}
 #solver{pointer-events:none}
 .tag{position:absolute;left:50%;bottom:14px;transform:translateX(-50%);z-index:2;pointer-events:none;
      font:700 12px system-ui,sans-serif;letter-spacing:.12em;text-transform:uppercase;padding:6px 12px;border-radius:999px;
-     background:rgba(10,11,14,.75);border:1px solid currentColor}
+     background:var(--tag-bg);border:1px solid currentColor}
 .tag.you{color:var(--accent)}
 .tag.solver{color:var(--solver)}
 #countdown{position:fixed;inset:56px 0 0;display:grid;place-items:center;z-index:10;pointer-events:none;
-           font:800 min(28vw,220px)/1 system-ui,sans-serif;color:#fff;text-shadow:0 8px 40px rgba(0,0,0,.6)}
+           font:800 min(28vw,220px)/1 system-ui,sans-serif;color:var(--count);text-shadow:0 8px 40px var(--count-shadow)}
 #countdown.pop{animation:pop .9s ease-out}
 @keyframes pop{0%{transform:scale(1.6);opacity:0}25%{opacity:1}100%{transform:scale(1);opacity:.15}}
 #verdict{position:fixed;left:50%;top:72px;transform:translateX(-50%);z-index:11;width:min(560px,calc(100vw - 32px));
          background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:16px 20px;
-         box-shadow:0 20px 60px rgba(0,0,0,.5);text-align:center;backdrop-filter:blur(8px)}
+         box-shadow:0 20px 60px var(--shadow-strong);text-align:center;backdrop-filter:blur(8px)}
 #verdict h2{margin:0 0 4px;font-size:20px}
 #verdict p{margin:0 0 12px;color:var(--muted)}
 #verdict.win h2{color:var(--good)}
@@ -78,6 +86,7 @@ button:disabled{opacity:.5;cursor:default}
     </select>
   </label>
   <button class="go" id="go" disabled>Loading…</button>
+  <span id="mode-slot"></span>
 </header>
 
 <main class="arena" id="arena">
@@ -104,6 +113,7 @@ button:disabled{opacity:.5;cursor:default}
 // answer slowly (see "race" in play.html). Each page is its own copy of the
 // simulation; this page only starts them together and keeps time.
 const $ = id => document.getElementById(id);
+if (window.ColorMode) ColorMode.mount($("mode-slot"));
 const id = new URLSearchParams(location.search).get("level") || "lava-fork";
 const fmt = ms => { const s = ms / 1000; return Math.floor(s / 60) + ":" + (s % 60).toFixed(1).padStart(4, "0"); };
 

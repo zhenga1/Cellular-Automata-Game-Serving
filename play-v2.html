@@ -5,22 +5,26 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Play · Cellular Automata Sandbox</title>
 <meta name="description" content="Challenge levels for the 3D falling-sand sandbox: steer lava away from a village with one block, or hold back a wildfire.">
+<meta name="color-scheme" content="light dark">
+<script src="mode.js?v=e83af7a99e97"></script>
 <style>
-:root{--bg:#15171c;--panel:rgba(22,24,30,.86);--panel-border:rgba(255,255,255,.08);--text:#e8e9ec;--muted:#9095a1;--accent:#7cc4ff;--good:#7fe0a6;--bad:#ff8a80;--warn:#ffc46b;--hover:rgba(255,255,255,.07);--active:rgba(124,196,255,.18);--radius:10px}
+:root{--bg:#eef1f5;--panel:rgba(255,255,255,.9);--panel-border:rgba(20,30,45,.12);--text:#1b2029;--muted:#5b6372;--accent:#1d6fd0;--good:#1e8a4c;--bad:#c62828;--warn:#a86a00;--hover:rgba(20,30,45,.06);--active:rgba(29,111,208,.12);--radius:10px;--btn:rgba(20,30,45,.04);--field:#fff;--track:rgba(20,30,45,.14);--switch:rgba(20,30,45,.18);--kbd:rgba(20,30,45,.05);--canvas:#d4e0ed;--shadow:rgba(20,30,45,.16);--shadow-strong:rgba(20,30,45,.24);--ring:rgba(20,30,45,.18);--primary-bg:rgba(29,111,208,.12);--primary-border:rgba(29,111,208,.5);--primary-text:#134f99;--gone:#c3c8d1;--chip:rgba(20,30,45,.04);--scrim:rgba(225,231,239,.62);color-scheme:light}
+:root[data-mode=dark]{--bg:#15171c;--panel:rgba(22,24,30,.86);--panel-border:rgba(255,255,255,.08);--text:#e8e9ec;--muted:#9095a1;--accent:#7cc4ff;--good:#7fe0a6;--bad:#ff8a80;--warn:#ffc46b;--hover:rgba(255,255,255,.07);--active:rgba(124,196,255,.18);--btn:rgba(255,255,255,.05);--field:rgba(0,0,0,.25);--track:rgba(255,255,255,.08);--switch:rgba(255,255,255,.15);--kbd:rgba(255,255,255,.06);--canvas:#404040;--shadow:rgba(0,0,0,.35);--shadow-strong:rgba(0,0,0,.5);--ring:rgba(255,255,255,.15);--primary-bg:rgba(124,196,255,.16);--primary-border:rgba(124,196,255,.5);--primary-text:#dcefff;--gone:#3a3d44;--chip:rgba(255,255,255,.04);--scrim:rgba(10,11,14,.72);color-scheme:dark}
+.mode-slot{margin-left:auto;display:flex}
 *{box-sizing:border-box}
 [hidden]{display:none!important}
 html,body{margin:0;height:100%;overflow:hidden;background:var(--bg);color:var(--text);font:13px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
-#canvas{position:fixed;inset:0;width:100vw;height:100vh;display:block;outline:0;background:#404040}
+#canvas{position:fixed;inset:0;width:100vw;height:100vh;display:block;outline:0;background:var(--canvas)}
 #overlay{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;background:var(--bg);z-index:20;transition:opacity .4s ease}
 #overlay.hidden{opacity:0;pointer-events:none}
 #overlay h1{margin:0;font-size:22px;font-weight:600;letter-spacing:.2px}
 #status{color:var(--muted);min-height:1.4em;text-align:center;max-width:80vw}
-#bar{width:260px;height:4px;border-radius:2px;background:rgba(255,255,255,.08);overflow:hidden}
+#bar{width:260px;height:4px;border-radius:2px;background:var(--track);overflow:hidden}
 #bar>div{height:100%;width:0;background:var(--accent);transition:width .15s}
 #overlay.error #bar{display:none}
 #overlay.error #status{color:var(--bad)}
 
-.panel{position:fixed;background:var(--panel);backdrop-filter:blur(10px);border:1px solid var(--panel-border);border-radius:14px;z-index:5;user-select:none;box-shadow:0 8px 30px rgba(0,0,0,.35)}
+.panel{position:fixed;background:var(--panel);backdrop-filter:blur(10px);border:1px solid var(--panel-border);border-radius:14px;z-index:5;user-select:none;box-shadow:0 8px 30px var(--shadow)}
 #brief{top:12px;left:12px;width:300px;max-height:calc(100vh - 24px);overflow-y:auto;padding:12px 14px}
 #hud{top:12px;right:12px;width:258px;max-height:calc(100vh - 24px);overflow-y:auto;padding:12px}
 .panel.collapsed>:not(header){display:none}
@@ -32,22 +36,22 @@ header h1 a:focus-visible{outline:2px solid var(--accent);outline-offset:2px;bor
 .section{margin-top:14px}
 .label{display:flex;justify-content:space-between;align-items:baseline;color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.6px;margin-bottom:6px}
 .label span{text-transform:none;letter-spacing:0;color:var(--text);font-size:12px}
-button{font:inherit;color:var(--text);background:rgba(255,255,255,.05);border:1px solid var(--panel-border);border-radius:var(--radius);padding:7px 10px;cursor:pointer;text-align:center}
+button{font:inherit;color:var(--text);background:var(--btn);border:1px solid var(--panel-border);border-radius:var(--radius);padding:7px 10px;cursor:pointer;text-align:center}
 button:hover:not(:disabled){background:var(--hover)}
 button:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
 button:disabled{opacity:.45;cursor:default}
-button.primary{background:rgba(124,196,255,.16);border-color:rgba(124,196,255,.5);color:#dcefff;font-weight:600}
+button.primary{background:var(--primary-bg);border-color:var(--primary-border);color:var(--primary-text);font-weight:600}
 button.primary:hover:not(:disabled){background:rgba(124,196,255,.26)}
 .icon-btn{padding:4px 8px;font-size:15px;line-height:1}
 .row{display:flex;gap:6px}
 .row>*{flex:1}
 #materials{display:grid;grid-template-columns:repeat(2,1fr);gap:5px}
 .mat{display:flex;align-items:center;gap:8px;text-align:left;padding:6px 8px}
-.mat .swatch{width:16px;height:16px;border-radius:4px;flex:none;box-shadow:inset 0 0 0 1px rgba(255,255,255,.15)}
+.mat .swatch{width:16px;height:16px;border-radius:4px;flex:none;box-shadow:inset 0 0 0 1px var(--ring)}
 .mat .key{margin-left:auto;color:var(--muted);font-size:11px}
 .mat[aria-pressed=true]{background:var(--active);border-color:var(--accent)}
 .switch{display:flex;align-items:center;justify-content:space-between;gap:10px;cursor:pointer}
-.switch input{appearance:none;width:34px;height:20px;border-radius:10px;background:rgba(255,255,255,.15);position:relative;cursor:pointer;transition:background .15s;flex:none;margin:0}
+.switch input{appearance:none;width:34px;height:20px;border-radius:10px;background:var(--switch);position:relative;cursor:pointer;transition:background .15s;flex:none;margin:0}
 .switch input::after{content:"";position:absolute;top:3px;left:3px;width:14px;height:14px;border-radius:50%;background:#fff;transition:transform .15s}
 .switch input:checked{background:var(--accent)}
 .switch input:checked::after{transform:translateX(14px)}
@@ -56,7 +60,7 @@ input[type=range]{width:100%;accent-color:var(--accent)}
 dl{display:grid;grid-template-columns:auto 1fr;gap:4px 10px;margin:8px 0 0;font-size:12px}
 dt{color:var(--text);white-space:nowrap}
 dd{margin:0;color:var(--muted)}
-kbd{font:11px ui-monospace,Consolas,monospace;padding:1px 4px;border-radius:4px;border:1px solid var(--panel-border);background:rgba(255,255,255,.06)}
+kbd{font:11px ui-monospace,Consolas,monospace;padding:1px 4px;border-radius:4px;border:1px solid var(--panel-border);background:var(--kbd)}
 details summary{cursor:pointer;color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.6px}
 details ul{margin:8px 0 0;padding-left:18px;color:var(--muted);font-size:12px}
 details li{margin:4px 0}
@@ -70,16 +74,16 @@ details li{margin:4px 0}
 #villagers li{display:flex;align-items:center;gap:8px;padding:3px 0}
 #villagers .dot{width:10px;height:10px;border-radius:50%;flex:none;box-shadow:inset 0 0 0 1px rgba(0,0,0,.35)}
 #villagers li.gone{color:var(--bad);text-decoration:line-through}
-#villagers li.gone .dot{background:#3a3d44!important;box-shadow:none}
+#villagers li.gone .dot{background:var(--gone)!important;box-shadow:none}
 
 .stat{display:flex;justify-content:space-between;align-items:baseline;font-size:12px;padding:3px 0}
 .stat b{font-weight:600}
 .stat.danger b{color:var(--bad)}
 #phase{font-size:12px;color:var(--accent);margin-top:6px;min-height:1.3em}
 
-#result{position:fixed;inset:0;display:none;place-items:center;background:rgba(10,11,14,.72);z-index:15;backdrop-filter:blur(3px)}
+#result{position:fixed;inset:0;display:none;place-items:center;background:var(--scrim);z-index:15;backdrop-filter:blur(3px)}
 #result.show{display:grid}
-#result .card{width:min(420px,calc(100vw - 32px));background:var(--panel);border:1px solid var(--panel-border);border-radius:16px;padding:22px 24px;box-shadow:0 20px 60px rgba(0,0,0,.5);text-align:center}
+#result .card{width:min(420px,calc(100vw - 32px));background:var(--panel);border:1px solid var(--panel-border);border-radius:16px;padding:22px 24px;box-shadow:0 20px 60px var(--shadow-strong);text-align:center}
 #result h2{margin:0 0 6px;font-size:22px}
 #result.won h2{color:var(--good)}
 #result.lost h2{color:var(--bad)}
@@ -87,12 +91,12 @@ details li{margin:4px 0}
 #result .row{justify-content:center}
 
 #levels{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
-#levels a{font-size:12px;color:var(--text);text-decoration:none;border:1px solid var(--panel-border);border-radius:999px;padding:3px 10px;background:rgba(255,255,255,.04)}
+#levels a{font-size:12px;color:var(--text);text-decoration:none;border:1px solid var(--panel-border);border-radius:999px;padding:3px 10px;background:var(--chip)}
 #levels a:hover{background:var(--hover)}
 #levels a[aria-current=page]{background:var(--active);border-color:var(--accent)}
 #levels a:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
-#timer{height:4px;border-radius:2px;background:rgba(255,255,255,.08);overflow:hidden;margin-top:6px}
-#burnbar{height:4px;border-radius:2px;background:rgba(255,255,255,.08);overflow:hidden;margin-top:6px;position:relative}
+#timer{height:4px;border-radius:2px;background:var(--track);overflow:hidden;margin-top:6px}
+#burnbar{height:4px;border-radius:2px;background:var(--track);overflow:hidden;margin-top:6px;position:relative}
 #burnbar>div{height:100%;width:0;background:var(--warn);transition:width .3s}
 #burnbar::after{content:"";position:absolute;top:-2px;bottom:-2px;width:2px;background:var(--text);left:var(--goal,97%)}
 #timer>div{height:100%;width:0;background:var(--good);transition:width .3s}
@@ -100,7 +104,7 @@ details li{margin:4px 0}
 #replay.show{display:block}
 #replay .bar{display:flex;align-items:center;gap:10px}
 #replay .bar input[type=range]{flex:1}
-#replay select{font:inherit;color:var(--text);background:rgba(0,0,0,.25);border:1px solid var(--panel-border);border-radius:var(--radius);padding:6px 8px}
+#replay select{font:inherit;color:var(--text);background:var(--field);border:1px solid var(--panel-border);border-radius:var(--radius);padding:6px 8px}
 #replay .time{font-variant-numeric:tabular-nums;color:var(--muted);font-size:12px;min-width:92px;text-align:right}
 #replay .title{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.6px}
 #toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%) translateY(20px);background:var(--panel);border:1px solid var(--panel-border);border-radius:var(--radius);padding:8px 14px;opacity:0;transition:all .25s;z-index:6;pointer-events:none}
@@ -120,6 +124,7 @@ body.race #hud{top:12px;bottom:auto;left:auto;right:12px;width:230px;max-height:
 <aside class="panel" id="brief" aria-label="Mission briefing">
   <header>
     <h1><a href="./" title="Back to the home page">← Home</a> Play</h1>
+    <span class="mode-slot" id="mode-slot"></span>
     <button class="icon-btn" id="brief-collapse" title="Hide briefing" aria-expanded="true">–</button>
   </header>
   <div class="sub" id="level-sub"></div>
@@ -243,11 +248,12 @@ body.race #hud{top:12px;bottom:auto;left:auto;right:12px;width:230px;max-height:
 
 <div id="toast" role="status" aria-live="polite"></div>
 
-<script src="audio.js?v=d7451804e06d"></script>
+<script src="audio.js?v=e83af7a99e97"></script>
 <script>
 "use strict";
-const BUILD_ID = "d7451804e06d";
+const BUILD_ID = "e83af7a99e97";
 const $ = id => document.getElementById(id);
+if (window.ColorMode) ColorMode.mount($("mode-slot"));
 if (window.GameAudio) GameAudio.mountControl($("sound-control"), true);
 const versioned = u => BUILD_ID.startsWith("__") ? u : u + "?v=" + BUILD_ID;
 
@@ -897,6 +903,7 @@ var Module = {
   onRuntimeInitialized() {
     ready = true;
     if (window.GameAudio) GameAudio.attach(Module);
+    if (window.ColorMode) ColorMode.attachEngine(Module);
     requestAnimationFrame(() => requestAnimationFrame(() => {
       overlay.classList.add("hidden");
       $("level-sub").textContent = level.subtitle;
@@ -959,6 +966,6 @@ if (!document.createElement("canvas").getContext("webgl2")) {
   showError("This page needs WebGL 2, which your browser does not support.");
 }
 </script>
-<script async src="sim.js?v=d7451804e06d"></script>
+<script async src="sim.js?v=e83af7a99e97"></script>
 </body>
 </html>

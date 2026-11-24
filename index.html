@@ -5,12 +5,49 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>World Simulator &mdash; Cellular Automata</title>
 <meta name="description" content="World Simulator: a 3D falling-sand cellular automata world in your browser. Sand piles up, water flows, lava melts snow into steam, and fire spreads through wood and grass.">
-<meta name="color-scheme" content="dark">
+<meta name="color-scheme" content="light dark">
+<script src="mode.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
 <style>
+  /* Light is the default; web/mode.js sets data-mode="light" or "dark" on <html>.
+     The material squares in the header pick a theme on top (data-theme). */
   :root {
+    --bg: #f4f6f9;
+    --card: #ffffff;
+    --card-hover: #f6f8fb;
+    --border: rgba(20, 30, 45, 0.11);
+    --text: #161b23;
+    --muted: #586070;
+    --accent: #1d6fd0;
+    --on-accent: #ffffff;
+    --cell: rgba(20, 30, 45, 0.06);
+    --thumb: #e4e9f0;
+    --error: #c62828;
+    --error-bg: rgba(198, 40, 40, 0.08);
+    --error-border: rgba(198, 40, 40, 0.35);
+    --radius: 18px;
+    --glow-a: rgba(228, 125, 25, 0.10);
+    --glow-b: rgba(37, 125, 255, 0.10);
+    --display: "Space Grotesk", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    --mono: "JetBrains Mono", ui-monospace, Consolas, monospace;
+    color-scheme: light;
+  }
+  /* Light themes: a tinted page, and an accent dark enough to read on white */
+  :root[data-theme="sand"]  { --bg: #f8f3ea; --card: #fffdf9; --card-hover: #fbf6ee; --accent: #9a6a22;
+                              --glow-a: rgba(214, 170, 96, 0.20); --glow-b: rgba(238, 208, 162, 0.22); }
+  :root[data-theme="water"] { --bg: #edf4fc; --card: #ffffff; --card-hover: #f4f9ff; --accent: #1766c8;
+                              --glow-a: rgba(37, 125, 255, 0.14); --glow-b: rgba(60, 200, 230, 0.10); }
+  :root[data-theme="lava"]  { --bg: #fcf2ea; --card: #fffbf7; --card-hover: #fff5ec; --accent: #bf5a0c;
+                              --glow-a: rgba(228, 125, 25, 0.16); --glow-b: rgba(255, 190, 60, 0.12); }
+  :root[data-theme="fire"]  { --bg: #fcefed; --card: #fffaf9; --card-hover: #fff3f1; --accent: #c4361f;
+                              --glow-a: rgba(228, 45, 2, 0.12); --glow-b: rgba(255, 120, 40, 0.10); }
+  :root[data-theme="grass"] { --bg: #eef7ee; --card: #fbfefb; --card-hover: #f3faf3; --accent: #2b7f37;
+                              --glow-a: rgba(30, 160, 12, 0.12); --glow-b: rgba(170, 220, 90, 0.12); }
+
+  /* Dark mode, and its themes */
+  :root[data-mode="dark"] {
     --bg: #121418;
     --card: #1b1e25;
     --card-hover: #22262f;
@@ -18,23 +55,33 @@
     --text: #eceef2;
     --muted: #979cab;
     --accent: #7cc4ff;
-    --radius: 18px;
+    --on-accent: #0d0f14;
+    --cell: rgba(255, 255, 255, 0.05);
+    --thumb: #20232b;
+    --error: #ff8a7a;
+    --error-bg: rgba(255, 110, 90, 0.1);
+    --error-border: rgba(255, 110, 90, 0.4);
     --glow-a: rgba(228, 125, 25, 0.12);
     --glow-b: rgba(37, 125, 255, 0.12);
-    --display: "Space Grotesk", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-    --mono: "JetBrains Mono", ui-monospace, Consolas, monospace;
+    color-scheme: dark;
   }
-  /* Themes, picked with the material squares in the header. Stone is the default above. */
-  :root[data-theme="sand"]  { --bg: #19160f; --card: #241f17; --card-hover: #2c261c; --accent: #f2d29b;
+  :root[data-mode="dark"][data-theme="sand"]  { --bg: #19160f; --card: #241f17; --card-hover: #2c261c; --accent: #f2d29b;
                               --glow-a: rgba(238, 208, 162, 0.18); --glow-b: rgba(214, 170, 96, 0.10); }
-  :root[data-theme="water"] { --bg: #0c131d; --card: #142030; --card-hover: #1a283b; --accent: #6fb6ff;
+  :root[data-mode="dark"][data-theme="water"] { --bg: #0c131d; --card: #142030; --card-hover: #1a283b; --accent: #6fb6ff;
                               --glow-a: rgba(37, 125, 255, 0.22); --glow-b: rgba(60, 200, 230, 0.10); }
-  :root[data-theme="lava"]  { --bg: #1a110b; --card: #271a12; --card-hover: #302118; --accent: #ffa75a;
+  :root[data-mode="dark"][data-theme="lava"]  { --bg: #1a110b; --card: #271a12; --card-hover: #302118; --accent: #ffa75a;
                               --glow-a: rgba(228, 125, 25, 0.24); --glow-b: rgba(255, 190, 60, 0.08); }
-  :root[data-theme="fire"]  { --bg: #1a0c0c; --card: #281515; --card-hover: #321a1a; --accent: #ff7b68;
+  :root[data-mode="dark"][data-theme="fire"]  { --bg: #1a0c0c; --card: #281515; --card-hover: #321a1a; --accent: #ff7b68;
                               --glow-a: rgba(228, 45, 2, 0.24); --glow-b: rgba(255, 120, 40, 0.10); }
-  :root[data-theme="grass"] { --bg: #0d160e; --card: #162217; --card-hover: #1b2a1d; --accent: #7fdc8c;
+  :root[data-mode="dark"][data-theme="grass"] { --bg: #0d160e; --card: #162217; --card-hover: #1b2a1d; --accent: #7fdc8c;
                               --glow-a: rgba(30, 160, 12, 0.20); --glow-b: rgba(170, 220, 90, 0.08); }
+  .mode-btn {
+    display: inline-grid; place-items: center; width: 34px; height: 34px; margin-left: 10px;
+    border-radius: 10px; border: 1px solid var(--border); background: var(--card); color: var(--text);
+    cursor: pointer; transition: background .15s ease, transform .15s ease;
+  }
+  .mode-btn:hover { background: var(--card-hover); transform: translateY(-1px); }
+  .mode-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
   * { box-sizing: border-box; }
   [hidden] { display: none !important; }
@@ -111,7 +158,7 @@
     transition: transform .15s ease, background .15s ease, border-color .15s ease;
   }
   .btn:hover { transform: translateY(-2px); background: var(--card-hover); }
-  .btn.primary { background: var(--accent); color: #0d0f14; border-color: transparent; }
+  .btn.primary { background: var(--accent); color: var(--on-accent); border-color: transparent; }
   .btn.primary:hover { filter: brightness(1.08); background: var(--accent); }
   .btn:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
   .pour-hint {
@@ -138,7 +185,7 @@
   }
   .rule .grid3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 3px; width: 96px; height: 96px; }
   .rule .grid3 span {
-    border-radius: 4px; background: rgba(255,255,255,.05); position: relative;
+    border-radius: 4px; background: var(--cell); position: relative;
     font: 600 10px/1 var(--mono); color: var(--text); display: grid; place-items: center;
   }
   .rule .grid3 span.me { box-shadow: inset 0 -4px 0 rgba(0,0,0,.25); }
@@ -159,10 +206,10 @@
                  border-color: color-mix(in srgb, var(--accent) 45%, transparent);
                  box-shadow: 0 18px 40px -20px color-mix(in srgb, var(--accent) 55%, transparent); }
   a.card:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
-  .thumb { aspect-ratio: 16 / 9; background: #20232b; overflow: hidden; }
+  .thumb { aspect-ratio: 16 / 9; background: var(--thumb); overflow: hidden; }
   .thumb img { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform .4s ease; }
   a.card:hover .thumb img { transform: scale(1.04); }
-  .thumb img.map { object-fit: contain; background: #181a20; image-rendering: pixelated; }
+  .thumb img.map { object-fit: contain; background: var(--thumb); image-rendering: pixelated; }
   .card .body { padding: 18px 20px 20px; display: flex; flex-direction: column; gap: 8px; flex: 1; }
   .title-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
   .card h3 { margin: 0; font-size: 21px; }
@@ -182,7 +229,7 @@
   }
   .world:hover { transform: translateY(-3px); border-color: color-mix(in srgb, var(--accent) 45%, transparent); }
   .world:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
-  .world img { display: block; width: 100%; height: auto; aspect-ratio: 16 / 9; object-fit: cover; background: #20232b; }
+  .world img { display: block; width: 100%; height: auto; aspect-ratio: 16 / 9; object-fit: cover; background: var(--thumb); }
   .world div { padding: 12px 14px 14px; }
   .world strong { display: block; font-family: var(--display); font-size: 16px; }
   .world span { display: block; color: var(--muted); font-size: 13px; margin-top: 2px; }
@@ -251,7 +298,7 @@
   #join-status.ok, #join-status.err { padding: 10px 12px; border-radius: 10px; font-weight: 600; }
   #join-status.ok { color: var(--accent); background: color-mix(in srgb, var(--accent) 14%, transparent);
                     border: 1px solid color-mix(in srgb, var(--accent) 45%, transparent); }
-  #join-status.err { color: #ff8a7a; background: rgba(255, 110, 90, .1); border: 1px solid rgba(255, 110, 90, .4); }
+  #join-status.err { color: var(--error); background: var(--error-bg); border: 1px solid var(--error-border); }
 
   footer {
     margin-top: 88px; padding: 28px 0 40px; border-top: 1px solid var(--border);
@@ -322,6 +369,7 @@
       <button type="button" data-theme="grass" aria-pressed="false" title="Grass theme" aria-label="Grass theme" style="background:rgb(30,130,12)"></button>
       <button type="button" data-theme="stone" aria-pressed="false" title="Stone theme" aria-label="Stone theme" style="background:rgb(135,140,140)"></button>
     </div>
+    <span id="mode-slot"></span>
   </div>
 </header>
 
@@ -504,6 +552,7 @@
     grass: [[70, 170, 60], [160, 214, 96]],
   };
   let themeNow = "stone";
+  if (window.ColorMode) ColorMode.mount(document.getElementById("mode-slot"));
   (function () {
     const buttons = document.querySelectorAll(".voxels button");
     function apply(theme) {
